@@ -1,0 +1,49 @@
+# USE AND DISTRIBUTION OF THIS CODE IS GOVERNED BY EXPORT CONTROL LAWS AND THE LICENSE IN LICENSE.txt.
+# @LICENSE:
+# No non-source python resources.
+*.pyc
+*.pyo
+*.pyd
+*.pyx
+
+# No built binary files
+build
+*.lib
+*.dll
+dist/
+doc/.apidocs/*
+doc/.static/pyr_*.png
+doc/_build
+doc/_source
+*.c
+**/__pycache__
+
+# No workspace crumbs.
+*~
+.*.swp
+.settings
+.vscode
+.project
+.metadata
+.idea/
+.pydevproject
+*.sublime-project
+*.sublime-workspace
+phabricator-lint.txt
+temp-*
+tags
+*.temp
+.externalToolBuilders/
+.cache/
+.pytest_cache/
+.vim-bookmarks
+.venv*/
+.mypy_cache/
+
+# Misc. exclusions
+*.html
+*.diff
+*.avi
+*.ppm
+*.mp4
+*.h5

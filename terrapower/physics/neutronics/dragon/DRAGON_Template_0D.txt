@@ -1,0 +1,106 @@
+*----
+*  HOMOGENEOUS CROSS SECTION GENERATION
+*
+*  REF: Based on TEST CASE TCDR08.c2m 
+*       Located in Dragon\data\tdraglib_proc
+*
+*  General DRAGON Input Comments:
+*    * DRAGON uses the CLE-2000 format as an input language. 
+*      This language is versatile, allowing for loops, conditional (If)
+*      statements, etc, to be included within an input deck.
+*    * CLE-2000 is also strict. It does not allow input beyond the 72nd column,
+*      so one must be aware of this in input construction. Comments are allowed
+*      beyond this column.
+*    * Tabs are not allowed.
+*    * The `*` character begins a comment line, while `!` allows for 
+*      in-line comments.
+*    * A DRAGON input file is created by calling several DRAGON modules in succession
+*      to perform the needed calculation. Modules pass needed data structures to 
+*      each other to advance the calculation forward. The goal of this calculation 
+*      is to produce and ISOTXS file which is produced by the EDI module.
+*    * The general structure of a calling a DRAGON module is as follows:
+*
+*          output(s) := dragonModule: input(s) :: moduleSettings ;
+*
+*          Here is an simple example using the FLU module:
+*
+*          FLUX := FLU: PIJ LIBRARY TRACK :: TYPE B ;
+*    
+*    * More detail on the operation of DRAGON is outside the
+*      scope of this input template. The user manual is available at
+*             http://www.polymtl.ca/merlin/downloads/IGE335.pdf
+*    * DRAGON is free and once downloaded, more than 300 sample inputs are 
+*      available in the \Dragon\data folder.
+*    * More detail on the construction of DRAGON inputs is 
+*      also available:
+*         It is for DRAGON version 3.06H, but much of the information is still relevant. 
+*         It provides a Tutorial for how to model a PWR assembly model.
+*             https://dspace.mit.edu/bitstream/handle/1721.1/70045/DRAGONtutorial.pdf?sequence
+*    
+*----
+*  Define STRUCTURES and MODULES used
+*----
+LINKED_LIST
+  LIBRARY HOM TRACKS TRACKF PIJ FLUX EDITION ;
+MODULE
+   LIB: GEO: SYBILT: SHI: ASM: FLU: EDI: END: ;
+*----
+*  No depletion performed.
+*----
+LIBRARY := LIB: ::
+  ANIS 2
+  NMIX 1 CTRA WIMS
+  ! Only 8 chars allowed. Actual data used: {{ nucDataComment }}
+  MIXS LIB: DRAGON FIL: {{ nucData }} 
+  MIX 1 {{"{:5f}".format(tempFuelInKelvin)}}
+{%- for nuclideID, dragonLibNuclide, nDens, selfShieldingFilterData in blockNDensCard -%}
+{{"\n   {:>7} = {:>7}   {:.6E} {:>3}".format(
+nuclideID, dragonLibNuclide, nDens,  1 if selfShieldingFilterData.mixtureMassDensity > 0.01 else "")}}       
+{%- endfor %}
+  ;
+*----
+*  Geometry HOM : Homogeneous geometry
+*----
+HOM := GEO: :: HOMOGE
+  MIX 1 ;
+*----
+*  Tracking calculation for Self-Shielding
+*----
+TRACKS := SYBILT: HOM  ::
+  TITLE '0D Self-Shielding Tracking Calculation' ;
+*----
+* Self Shielding Calculation
+*    * LEVEL 2 applies Nordheim (PIC) distributed self-shielding mode and
+*      Riemann integration method. LEVEL 0 is not compatible with the current
+*      implementation of self shielding index in this template, which is setting
+*      all inrs=1. ALST2F: A IS RANK-DEFICIENT will appear during SHI:. 
+*      Not applying a inrs to a nuclide with density greater than E-04, will all the
+*      calculation to run on LEVEL 0.
+*----
+LIBRARY := SHI: LIBRARY TRACKS :: EDIT 0 NOLJ LEVEL 2 ;
+*----
+* Tracking calculation for flux.
+*    * Note this could have used the same output as the last SYBILT call since the 
+*      settings are the same, but in many cases, settings are different for the self
+*      shielding tracking calculation to reduce the self shielding calculation time.
+*----
+TRACKF := SYBILT: HOM  ::
+  TITLE '0D Transport Tracking Calculation' ;
+*----
+* Assembly Calculation
+*----
+PIJ := ASM: LIBRARY TRACKF ;
+*----
+* Flux Calculation
+*----
+FLUX := FLU: PIJ LIBRARY TRACKF :: TYPE {% if buckling -%} B B1 SIGS {%- else -%} K {%- endif %} ;
+*----
+* Edition Calculation
+*    * EDIT 4 will print fairly rich cross section information.
+*----
+EDITION := EDI: FLUX LIBRARY TRACKF ::
+  EDIT 4 COND  
+{%- for innerBoundary in groupStructure%} {{"\n    {:.6E}".format(innerBoundary)}} {% endfor %}   
+  MICR ISOTXS ALL SAVE  ;
+END: ;
+QUIT .
