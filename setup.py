@@ -29,7 +29,7 @@ setup(
     packages=find_namespace_packages(),
     license="Apache 2.0",
     long_description=README,
-    install_requires=["armi", "numpy", "scipy"],
+    install_requires=["armi", "jinja2"],
     keywords="ARMI, DRAGON",
     classifiers=[
         "Development Status :: 3 - Alpha",
