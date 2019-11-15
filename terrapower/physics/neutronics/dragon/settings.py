@@ -14,6 +14,7 @@
 
 """Define settings for the DRAGON plugin."""
 import os
+import shutil
 
 from voluptuous import Schema, Any
 
@@ -64,7 +65,7 @@ def defineValidators(inspector):
         return []
     queries = [
         settingsValidation.Query(
-            lambda: not os.path.exists(inspector.cs[CONF_DRAGON_PATH]),
+            lambda: shutil.which(inspector.cs[CONF_DRAGON_PATH]) is None,
             "The path specified to the dragon executable does not exist: {}"
             "".format(inspector.cs[CONF_DRAGON_PATH]),
             "Please update executable location to the correct location.",

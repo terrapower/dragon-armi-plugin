@@ -14,7 +14,7 @@
 
 """Setup.py script for TerraPower DRAGON ARMI plugin"""
 
-from setuptools import setup, find_namespace_packages
+from setuptools import setup
 
 with open("README.md") as f:
     README = f.read()
@@ -26,7 +26,8 @@ setup(
     author="TerraPower LLC",
     author_email="armi-devs@terrapower.com",
     url="https://github.com/terrapower/dragon-plugin",
-    packages=find_namespace_packages(),
+    packages=["terrapower.physics.neutronics.dragon"],
+    package_data={"terrapower.physics.neutronics.dragon": ["resources/*", "resources/**/*"]},
     license="Apache 2.0",
     long_description=README,
     install_requires=["armi", "jinja2"],

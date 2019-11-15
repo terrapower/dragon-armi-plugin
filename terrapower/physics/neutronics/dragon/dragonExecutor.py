@@ -60,7 +60,7 @@ class DragonExecuter(mpiActions.MpiAction):
         """Perform DRAGON calculation for the current input file."""
         runLog.important(
             "Preparing to run DRAGON with executable: "
-            f"{self.cs['dragonExePath']}, on input: {self.inputName}"
+            f"{shutil.which(self.cs['dragonExePath'])}, on input: {self.inputName}"
         )
 
         with directoryChangers.TemporaryDirectoryChanger() as _tempDir:
@@ -75,7 +75,6 @@ class DragonExecuter(mpiActions.MpiAction):
     def _setupDir(self):
         """Copy input file, exe, and nuclear data file (DRAGLIB) to run directory."""
         targetsToCopy = (
-            self.cs["dragonExePath"],
             os.path.join(self.armiRunDir, self.inputName),
             self.cs["dragonDataPath"],
         )
