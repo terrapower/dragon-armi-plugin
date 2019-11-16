@@ -17,6 +17,9 @@ import sys
 
 import armi
 
+# Configure the baseline framework "App" for framework doc building
+armi.configure(armi.apps.App())
+
 sys.path.insert(0, os.path.abspath("../"))
 
 # -- Project information -----------------------------------------------------
@@ -51,7 +54,23 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
+    "sphinxcontrib.apidoc",
 ]
+
+# apidoc config
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+}  # , 'private-members']
+autodoc_member_order = "bysource"
+autoclass_content = "both"
+
+apidoc_module_dir = os.path.join("..", "terrapower")
+apidoc_output_dir = ".apidocs"
+apidoc_excluded_paths = ["tests", "*/test*"]
+apidoc_separate_modules = True
+apidoc_module_first = True
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
