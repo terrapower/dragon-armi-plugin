@@ -6,6 +6,6 @@ Polytechnique de Montréal.
 This plugin is a somewhat minimally example of a useful plugin, and can be used as
 guidance for creating your own plugins to your favorite nuclear tool!
 
-[DRAGON Interface Documentation] (https://terrapower.github.io/dragon-plugin/)
+[DRAGON Interface Documentation](https://terrapower.github.io/dragon-plugin/)
 
 More details of how to install this plugin to come!
