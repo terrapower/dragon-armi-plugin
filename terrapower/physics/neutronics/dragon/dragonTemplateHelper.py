@@ -58,7 +58,7 @@ class DragonTemplateHelper:
         """
         # Absolute paths are best. If doing relative path, must be relative to ARMI
         # run location (which for testing is the tests folder).
-        return os.path.join(THIS_DIR, "DRAGON_Template_0D.txt")
+        return os.path.join(THIS_DIR, "resources", "DRAGON_Template_0D.txt")
 
     def updateTemplateData(self, templateData):  # pylint: disable=no-self-use
         """
