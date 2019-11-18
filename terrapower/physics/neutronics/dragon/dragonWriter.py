@@ -168,6 +168,11 @@ class DragonWriter(interfaces.InputWriter):
         mixtureMassDensity = armiObj.density()
         numberDensities = armiObj.getNuclideNumberDensities(nucs)
         totalADensityModeled = sum(numberDensities)
+        if not totalADensityModeled:
+            # This is an empty armiObj. Can happen with zero-volume dummy components.
+            # This this writer's job is to accurately reflect the state of the reactor,
+            # we simply return an emtpy set of number densities.
+            return nDensCardData
         for nucName, nDens in zip(nucs, numberDensities):
             nuclideBase = nuclideBases.byName[nucName]
             if isinstance(
