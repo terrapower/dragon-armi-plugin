@@ -66,15 +66,16 @@ def defineValidators(inspector):
     queries = [
         settingsValidation.Query(
             lambda: shutil.which(inspector.cs[CONF_DRAGON_PATH]) is None,
-            "The path specified to the dragon executable does not exist: {}"
-            "".format(inspector.cs[CONF_DRAGON_PATH]),
+            f"The path specified in the `{CONF_DRAGON_PATH}` setting does not exist: "
+            f"{inspector.cs[CONF_DRAGON_PATH]}",
             "Please update executable location to the correct location.",
             inspector.NO_ACTION,
         ),
         settingsValidation.Query(
             lambda: not os.path.exists(inspector.cs[CONF_DRAGON_DATA_PATH]),
-            "The path specified to the dragon nuclear data file does not exist: {}"
-            "".format(inspector.cs[CONF_DRAGON_DATA_PATH]),
+            "The path specified to the dragon nuclear data file in the "
+            f"`{CONF_DRAGON_DATA_PATH}` setting does not exist: "
+            f"{inspector.cs[CONF_DRAGON_DATA_PATH]}",
             "Please update nuclear data location to the correct location.",
             inspector.NO_ACTION,
         ),
