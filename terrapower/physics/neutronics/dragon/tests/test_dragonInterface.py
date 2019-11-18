@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 """Test the DRAGON lattice physics writer."""
 import os
+import shutil
 import unittest
 
 from armi import settings
@@ -145,10 +146,10 @@ class TestDragonExecutor(unittest.TestCase):
     def test_setupDir(self):
         """
         Test copy of input, nuclear data and executable to execution dir.
-        
+
         Notes
         -----
-        This test makes small dummy files that it moves around; developers are not 
+        This test makes small dummy files that it moves around; developers are not
         required to have DRAGON installed to run these tests.
         """
         dragonExeAndDataSettings = ["dragonExePath", "dragonDataPath"]
@@ -160,10 +161,11 @@ class TestDragonExecutor(unittest.TestCase):
             fullPath = os.path.abspath(fName)
             with open(fullPath, "w") as f:
                 f.write("Dummy Data")
-            filesToCopy.append(fullPath)
-            # the file names are the same as the settings names
-            if fName in dragonExeAndDataSettings:
-                self.executor.cs[fName] = fullPath
+            if fName != "dragonExePath":
+                filesToCopy.append(fullPath)
+
+        self.executor.cs["dragonDataPath"] = os.path.abspath("dragonDataPath")
+        self.executor.cs["dragonExePath"] = shutil.which("dragonExePath")
 
         # make some files to copy over to execution dir.
         with directoryChangers.TemporaryDirectoryChanger() as _tempDir:

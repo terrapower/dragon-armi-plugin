@@ -100,8 +100,8 @@ class DragonExecuter(mpiActions.MpiAction):
 
     def _runCase(self):
         """Execute the DRAGON input."""
-        # the Exe, nuclear data, and input are now in current working directory.
-        exe = os.path.basename(self.cs["dragonExePath"])
+        # the nuclear data and input are now in current working directory.
+        exe = shutil.which(self.cs["dragonExePath"])
 
         # DRAGON input files can only reference nuclear data files with less than
         # this many characters.
