@@ -178,7 +178,7 @@ class TestDragonExecutor(unittest.TestCase):
             # temp dir is set up so lets test execution
             self._runCase()
 
-        for copiedFile in filesToCopy:
+        for copiedFile in filesToCopy + ["dragonExePath"]:
             os.remove(copiedFile)  # don't leave files around after tests complete.
 
     def _runCase(self):
