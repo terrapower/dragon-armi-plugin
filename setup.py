@@ -39,5 +39,4 @@ setup(
         "License :: OSI Approved :: Apache Software License",
     ],
     test_suite="tests",
-    include_package_data=True,
 )
