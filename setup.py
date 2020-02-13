@@ -26,8 +26,13 @@ setup(
     author="TerraPower LLC",
     author_email="armi-devs@terrapower.com",
     url="https://github.com/terrapower/dragon-plugin",
-    packages=["terrapower.physics.neutronics.dragon"],
-    package_data={"terrapower.physics.neutronics.dragon": ["resources/*", "resources/**/*"]},
+    packages=[
+        "terrapower.physics.neutronics.dragon",
+        "terrapower.physics.neutronics.dragon.tests",
+    ],
+    package_data={
+        "terrapower.physics.neutronics.dragon": ["resources/*", "resources/**/*"]
+    },
     license="Apache 2.0",
     long_description=README,
     install_requires=["armi", "jinja2"],
