@@ -19,7 +19,7 @@ import shutil
 from voluptuous import Schema, Any
 
 from armi.utils import units
-from armi.settings import setting2 as setting
+from armi.settings import setting
 from armi.operators import settingsValidation
 from armi.settings.fwSettings import xsSettings
 from armi.utils import pathTools
