@@ -32,7 +32,7 @@ class DragonPlugin(plugins.ArmiPlugin):
     @plugins.HOOKIMPL
     def exposeInterfaces(cs):
         """Function for exposing interface(s) to other code"""
-        if latticePhysics.latticePhysicsActive(cs) and cs["xsKernel"] == "DRAGON":
+        if cs["xsKernel"] == "DRAGON":
             klass = dragonInterface.DragonInterface
             return [interfaces.InterfaceInfo(ORDER, klass, {})]
         return []
