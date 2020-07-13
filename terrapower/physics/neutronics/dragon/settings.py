@@ -21,7 +21,7 @@ from voluptuous import Schema, Any
 from armi.utils import units
 from armi.settings import setting
 from armi.operators import settingsValidation
-from armi.settings.fwSettings import xsSettings
+from armi.physics.neutronics import settings as neutronicsSettings
 from armi.utils import pathTools
 
 CONF_DRAGON_PATH = "dragonExePath"
@@ -34,7 +34,7 @@ CONF_OPT_DRAGON = "DRAGON"
 def defineSettings():
     """Define settings for the DRAGON plugin."""
     settings = [
-        setting.Option(CONF_OPT_DRAGON, xsSettings.CONF_XS_KERNEL),
+        setting.Option(CONF_OPT_DRAGON, neutronicsSettings.CONF_XS_KERNEL),
         setting.Setting(
             CONF_DRAGON_PATH,
             default="dragon",
