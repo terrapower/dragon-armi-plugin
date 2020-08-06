@@ -1,10 +1,26 @@
 =============
 Dragon Plugin
 =============
-This code interfaces with the code DRAGON, which is the property of
-École Polytechnique de Montréal.
+This code connects `ARMI <https://terrapower.github.io/armi>`_ with the lattice code DRAGON
+from École Polytechnique de Montréal.
 
-To download DRAGON go to: https://www.polymtl.ca/merlin/version5.htm
+Prerequisites
+-------------
+* Download and install ARMI
+* Download and build/install DRAGON from: https://www.polymtl.ca/merlin/version5.htm
+
+Registering the plugin
+----------------------
+To activate the DRAGON plugin in your ARMI app, ensure it is in your ``PYTHONPATH`` and
+register it in your app with code like::
+
+    from armi.apps import App
+    from terrapower.physics.neutronics.dragon import DragonPlugin
+
+    class MyApp(App):
+        def __init__(self):
+            App.__init__(self)
+            self._pm.register(DragonPlugin)
 
 -------------
 
