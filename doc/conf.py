@@ -70,6 +70,7 @@ apidoc_output_dir = ".apidocs"
 apidoc_excluded_paths = ["tests", "*/test*"]
 apidoc_separate_modules = True
 apidoc_module_first = True
+apidoc_extra_args = ["--implicit-namespaces"]
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -212,7 +213,10 @@ epub_exclude_files = ["search.html"]
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "armi": ("https://terrapower.github.io/armi/", None),
+}
 
 # -- Options for todo extension ----------------------------------------------
 
