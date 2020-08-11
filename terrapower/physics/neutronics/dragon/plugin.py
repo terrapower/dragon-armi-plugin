@@ -17,7 +17,6 @@ DRAGON Plugin
 """
 from armi import plugins
 from armi import interfaces
-from armi.physics.neutronics import latticePhysics
 
 from . import dragonInterface
 from . import settings

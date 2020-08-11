@@ -13,24 +13,92 @@
 # limitations under the License.
 
 """
-Executes DRAGON input files during an ARMI run.
+Write input and execute DRAGON given an ARMI object.
+
+Currently limited to handling Blocks only.
+
+This module makes no assumptions about where the block comes from or when the
+execution is to be performed. 
+
+Scheduling and choosing happens in
+:py:mod:`terrapower.physics.neutronics/dragon.dragonInterface` in default runs, or
+in other apps.
 """
 import os
 import shutil
 import subprocess
 
-from armi import mpiActions
 from armi import runLog
 from armi.utils import directoryChangers
 from armi.utils import outputCache
 from armi.localization import exceptions
+from armi.reactor import blocks
+from armi.settings import caseSettings
+from armi.physics import executers
+from armi.physics import neutronics
 
 from . import dragonWriter
+from . import settings
+
+# DRAGON natively names the ISOTXS file "ISOTXS000001".
+ISOTXS_NAME = "ISOTXS{:06d}"
+THIS_DIR = os.path.dirname(__file__)
 
 
-class DragonExecuter(mpiActions.MpiAction):
+class DragonOptions(executers.ExecutionOptions):
+    """Data structure needed to perform a DRAGON execution."""
+
+    def __init__(self, label=None):
+        executers.ExecutionOptions.__init__(self, label)
+        self.cacheDir = None
+        self.nuclides = []
+        self.templatePath = None
+        self.libDataFile = None
+        self.libDataFileShort = None
+        self.xsID = None
+        self.groupStructure = None
+
+        self.xsSettings = None
+        self.inputFile = f"{label}.x2m"
+        # outputs
+        # For dragonAA.x2m ---> dragonAA.x2mout
+        self.outputFile = f"{self.inputFile}out"
+        # only expecting 1 ISOTXS at the moment
+        self.outputIsotxsName = ISOTXS_NAME.format(1)
+
+        self.templatePath = os.path.join(
+            THIS_DIR, "resources", "DRAGON_Template_0D.txt"
+        )
+
+    def fromUserSettings(self, cs: caseSettings.Settings):
+        """Load settings from a case settings object"""
+        self.executablePath = shutil.which(cs[settings.CONF_DRAGON_PATH])
+        self.setRunDirFromCaseTitle(cs.caseTitle)
+        self.libDataFile = cs[settings.CONF_DRAGON_DATA_PATH]
+        _dataPath, dataName = os.path.split(self.libDataFile)
+        # DRAGON input files can only reference nuclear data files with less
+        # than this many characters. We take the last x chars rather than the
+        # first since the library names usually have meaningful info at the end
+        # like draglibendfb7r1SHEM31Plugin 'dense-analysis/ale'5
+        self.libDataFileShort = dataName[-dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME :]
+        self.cacheDir = cs["outputCacheLocation"]
+        self.groupStructure = cs["groupStructure"]
+
+        if self.xsID is None:
+            raise ValueError("You must run `fromBlock` before `fromUserSettings`")
+        self.xsSettings = cs[neutronics.const.CONF_CROSS_SECTION][self.xsID]
+
+    def fromReactor(self, reactor):
+        self.nuclides = reactor.blueprints.allNuclidesInProblem
+
+    def fromBlock(self, block: blocks.Block):
+        """Determine specific options from a particular block."""
+        self.xsID = block.getMicroSuffix()
+
+
+class DragonExecuter:
     """
-    Responsible for executing DRAGON in parallel.
+    Execute a DRAGON case.
 
     Notes
     -----
@@ -45,108 +113,94 @@ class DragonExecuter(mpiActions.MpiAction):
     copied over to it for fast execution.
     """
 
-    # DRAGON natively names the ISOTXS file "ISOTXS000001".
-    ISOTXS_NAME = "ISOTXS{:06d}"
+    def __init__(self, options: DragonOptions, block):
+        self.options = options
+        self.block = block
 
-    def __init__(self, inputPath, xsId):
-        mpiActions.MpiAction.__init__(self)
-
-        # The input file will be copied to the current working (temporary) directory,
-        # so only the input name is important.
-        self.armiRunDir, self.inputName = os.path.split(inputPath)
-        self.xsId = xsId
-
-    def invokeHook(self):
+    def run(self):
         """Perform DRAGON calculation for the current input file."""
         runLog.important(
             "Preparing to run DRAGON with executable: "
-            f"{shutil.which(self.cs['dragonExePath'])}, on input: {self.inputName}"
+            f"{self.options.executablePath}, on input: {self.options.inputFile}"
         )
+        self.writeInput()
 
-        with directoryChangers.TemporaryDirectoryChanger() as _tempDir:
-            self._setupDir()
-            self._runCase()
-            self._copyResults()
+        inputs, outputs = self._collectIONames()
 
-        if self.parallel:
-            # Not sending anything back since no parameters were changed.
-            self.gather()
+        with directoryChangers.ForcedCreationDirectoryChanger(
+            self.options.runDir, filesToMove=inputs, filesToRetrieve=outputs,
+        ):
+            self._execute()
 
-    def _setupDir(self):
-        """Copy input file, exe, and nuclear data file (DRAGLIB) to run directory."""
-        targetsToCopy = (
-            os.path.join(self.armiRunDir, self.inputName),
-            self.cs["dragonDataPath"],
+    def _collectIONames(self):
+        inputs = (
+            self.options.inputFile,
+            (self.options.libDataFile, self.options.libDataFileShort),
         )
-        for targetPath in targetsToCopy:
-            # copy not move since this dir will be deleted.
-            shutil.copy(targetPath, os.path.basename(targetPath))
+        outputs = (
+            self.options.outputFile,
+            # rename isotxs on way back to the shared directory
+            (self.options.outputIsotxsName, f"ISO{self.options.xsID}"),
+        )
+        return inputs, outputs
 
-    def _getOutputFileNames(self):
+    def writeInput(self):
+        """Write the input file."""
+        inWriterCls = self._chooseInputWriter()
+        inputWriter = inWriterCls(self.block, self.options)
+        inputWriter.write()
+
+    def _chooseInputWriter(self):  # pylint: disable=no-self-use; useful in override
         """
-        Return the output file names.
+        Select an input writer class.
+        
+        Notes
+        -----
+        Intended to be customized via subclassing.
+        """
+        return dragonWriter.DragonWriter
+
+    def _execute(self):
+        """
+        Execute the DRAGON input.
+        
+        The nuclear data and input are now in current working directory.
 
         Notes
         -----
-        The author is uncertain what the standard output file extension is for DRAGON.
-        The standard extension for input files are `.x2m`,
-        so the output files are using `.x2mout`. If there is a more standard extension,
-        it is an opportunity for improvement.
+        This makes use of an output caching utility, which can make execution
+        nearly instantaneously if the input has been executed before.
         """
-        isotxsName = self.ISOTXS_NAME.format(1)  # only expecting 1 ISOTXS at the moment
-        # For dragonAA.x2m ---> dragonAA.x2mout
-        dragonOutName = f"{self.inputName}out"
-        return (dragonOutName, isotxsName)
+        runLog.extra(
+            f"Executing {self.options.executablePath}\n"
+            f"\tInput: {self.options.inputFile}\n"
+            f"\tOutput: {self.options.outputFile}\n"
+            f"\tWorking dir: {self.options.runDir}"
+        )
 
-    def _runCase(self):
-        """Execute the DRAGON input."""
-        # the nuclear data and input are now in current working directory.
-        exe = shutil.which(self.cs["dragonExePath"])
-
-        # DRAGON input files can only reference nuclear data files with less than
-        # this many characters.
-        dragonData = os.path.basename(self.cs["dragonDataPath"])
-        shortName = dragonData[-dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME :]
-        os.rename(dragonData, shortName)
         # Note that nuclear data files is considered an input for cacheCall().
-        inputPaths = (self.inputName, shortName)
+        inputPaths = (self.options.inputFile, self.options.libDataFileShort)
+        outputPaths = (self.options.outputFile, self.options.outputIsotxsName)
 
-        outputFileNames = self._getOutputFileNames()
-        with open(outputFileNames[0], "w") as outputF, open(self.inputName) as inputF:
-
-            def exectuteDragon():
+        def executeDragon():
+            """Helper function to work with output caching"""
+            with open(self.options.outputFile, "w") as outputF, open(
+                self.options.inputFile
+            ) as inputF:
                 try:
                     subprocess.call(
-                        exe, stdin=inputF, stdout=outputF, stderr=subprocess.STDOUT
+                        self.options.executablePath,
+                        stdin=inputF,
+                        stdout=outputF,
+                        stderr=subprocess.STDOUT,
                     )
                 except Exception as err:
                     raise exceptions.XSGenerationError() from err
 
-            # This can make execution nearly instantaneous if the input has
-            # been executed before.
-            outputCache.cacheCall(
-                self.cs, exe, inputPaths, outputFileNames, exectuteDragon
-            )
-
-    def _copyResults(self):
-        """
-        Copy the output and ISOTXS back to the ARMI run location.
-
-        Notes
-        -----
-        The input does not need to be copied since it was copied over from the original
-        ARMI run location, and still resides there.
-        """
-        dragonOutName, isotoxName = self._getOutputFileNames()
-
-        try:
-            # Move instead of copy since temp dir is about to be removed
-            shutil.move(dragonOutName, os.path.join(self.armiRunDir, dragonOutName))
-            shutil.move(isotoxName, os.path.join(self.armiRunDir, f"ISO{self.xsId}"))
-        except:
-            # outFileName will always exist, but ISOTXS is typically made at the very
-            # end of the run. Alternatively, the return code of subprocess could also
-            # possible be examined.
-            raise exceptions.XSGenerationError(
-                f"DRAGON run on {self.inputName} failed."
-            )
+        outputCache.cacheCall(
+            self.options.cacheDir,
+            self.options.executablePath,
+            inputPaths,
+            outputPaths,
+            executeDragon,
+        )
