@@ -42,7 +42,6 @@ from . import settings
 
 # DRAGON natively names the ISOTXS file "ISOTXS000001".
 ISOTXS_NAME = "ISOTXS{:06d}"
-THIS_DIR = os.path.dirname(__file__)
 
 
 class DragonOptions(executers.ExecutionOptions):
@@ -66,10 +65,6 @@ class DragonOptions(executers.ExecutionOptions):
         # only expecting 1 ISOTXS at the moment
         self.outputIsotxsName = ISOTXS_NAME.format(1)
 
-        self.templatePath = os.path.join(
-            THIS_DIR, "resources", "DRAGON_Template_0D.txt"
-        )
-
     def fromUserSettings(self, cs: caseSettings.Settings):
         """Load settings from a case settings object"""
         self.executablePath = shutil.which(cs[settings.CONF_DRAGON_PATH])
@@ -88,6 +83,8 @@ class DragonOptions(executers.ExecutionOptions):
             raise ValueError("You must run `fromBlock` before `fromUserSettings`")
         self.xsSettings = cs[neutronics.const.CONF_CROSS_SECTION][self.xsID]
 
+        self.templatePath = cs[settings.CONF_DRAGON_TEMPLATE_PATH]
+
     def fromReactor(self, reactor):
         self.nuclides = reactor.blueprints.allNuclidesInProblem
 
@@ -98,7 +95,7 @@ class DragonOptions(executers.ExecutionOptions):
 
 class DragonExecuter:
     """
-    Execute a DRAGON case.
+    Execute a DRAGON case given a block.
 
     Notes
     -----
@@ -147,7 +144,7 @@ class DragonExecuter:
     def writeInput(self):
         """Write the input file."""
         inWriterCls = self._chooseInputWriter()
-        inputWriter = inWriterCls(self.block, self.options)
+        inputWriter = inWriterCls([self.block], self.options)
         inputWriter.write()
 
     def _chooseInputWriter(self):  # pylint: disable=no-self-use; useful in override

@@ -15,22 +15,16 @@
 # pylint: disable=protected-access
 """Test the DRAGON lattice physics writer."""
 import os
-import shutil
 import unittest
 
-from armi import settings
 from armi.tests import TEST_ROOT
 from armi.reactor.tests import test_reactors
 from armi.reactor.flags import Flags
-from armi.nucDirectory import nuclideBases
-from armi.utils import directoryChangers
-from armi.utils import units
 from armi.physics.neutronics.const import CONF_CROSS_SECTION
-from armi.localization import exceptions
 
 from terrapower.physics.neutronics.dragon import dragonInterface
-from terrapower.physics.neutronics.dragon import dragonWriter
 from terrapower.physics.neutronics.dragon import dragonExecutor
+from terrapower.physics.neutronics.dragon import dragonWriter
 
 THIS_DIR = os.path.dirname(__file__)
 
@@ -58,7 +52,7 @@ class TestDragonInterface(unittest.TestCase):
         options.fromReactor(cls.reactor)
         options.fromBlock(block)
         options.fromUserSettings(cls.cs)
-        cls.writer = dragonWriter.DragonWriter(block, options)
+        cls.writer = dragonWriter.DragonWriterHomogenized([block], options)
 
     def test_writeInput(self):
         """
@@ -71,57 +65,6 @@ class TestDragonInterface(unittest.TestCase):
         """
         self.writer.write()
         os.remove(self.writer.options.inputFile)
-
-    def test_templateData(self):
-        """
-        Test that the template data structure is properly defined.
-        """
-        data = self.writer._buildTemplateData()
-
-        # These checks are not exact equal for everything, so that when the test reactor
-        # changes they shouldn't need to be updated.
-        self.assertEqual(data["xsId"], self.xsId)
-        self.assertLess(
-            len(data["nucData"]), dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME + 1
-        )
-        self.assertEqual(data["nucDataComment"], self.cs["dragonDataPath"])
-        self.assertAlmostEqual(data["tempFuelInKelvin"], 873.15)
-        self.assertEqual(
-            sorted(data["tempComponentsInKelvin"]),
-            sorted(units.getTk(Tc=c.temperatureInC) for c in self.writer.b),
-        )
-        self.assertEqual(data["buckling"], bool(self.xsSettings.criticalBuckling))
-        self.assertEqual(
-            len(data["groupStructure"]),
-            len(units.GROUP_STRUCTURE[self.cs["groupStructure"]]) - 1,
-            "DRAGON only includes inner group boundaries so there should be 1 less.",
-        )
-        self.assertEqual(len(data["components"]), len(self.writer.b))
-        self.assertEqual(data["block"], self.writer.b)
-
-        blockNDenseCard = data["blockNDensCard"]
-
-        nucId, dragonId, nDens, selfShieldingFilterData = blockNDenseCard[0]
-        self.assertEqual(nucId[-2:], self.xsId)
-        self.assertIsInstance(dragonId, str)
-        self.assertIsInstance(nDens, float)
-        self.assertEqual(
-            selfShieldingFilterData["heavyMetal"],
-            True,
-            "Blocks used to generate cross sections are expected to have heavy metal."
-            "It seems the DRAGON interface is not detecting it.",
-        )
-        for key in ("mixtureMassDensity", "atomFrac"):
-            self.assertIsInstance(selfShieldingFilterData[key], float)
-
-    def test_getDragLibNucID(self):
-        """Test conversion of nuclides to DRAGLIB strings."""
-        am241m = nuclideBases.byName["AM242M"]
-        self.assertEqual(self.writer.getDragLibNucID(am241m), "Am242m")
-        u235 = nuclideBases.byName["U235"]
-        self.assertEqual(self.writer.getDragLibNucID(u235), "U235")
-        na23 = nuclideBases.byName["NA23"]
-        self.assertEqual(self.writer.getDragLibNucID(na23), "Na23")
 
 
 if __name__ == "__main__":

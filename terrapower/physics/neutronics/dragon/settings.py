@@ -16,19 +16,18 @@
 import os
 import shutil
 
-from voluptuous import Schema, Any
-
 from armi.utils import units
 from armi.settings import setting
 from armi.operators import settingsValidation
 from armi.physics.neutronics import settings as neutronicsSettings
-from armi.utils import pathTools
 
 CONF_DRAGON_PATH = "dragonExePath"
 CONF_DRAGON_DATA_PATH = "dragonDataPath"
-CONF_DRAGON_TEMPLATE_HELPER = "dragonTemplateHelper"
+CONF_DRAGON_TEMPLATE_PATH = "dragonTemplatePath"
 
 CONF_OPT_DRAGON = "DRAGON"
+
+THIS_DIR = os.path.dirname(__file__)
 
 
 def defineSettings():
@@ -48,11 +47,10 @@ def defineSettings():
             description="Path to the DRAGON nuclear data file to use.",
         ),
         setting.Setting(
-            CONF_DRAGON_TEMPLATE_HELPER,
-            schema=Schema(Any(str, None)),  # Allow None type
-            default=None,
-            label="DRAGON template helper path",
-            description="Path to module responsible for pointing to the DRAGON template",
+            CONF_DRAGON_TEMPLATE_PATH,
+            default=os.path.join(THIS_DIR, "resources", "DRAGON_Template_0D.txt"),
+            label="DRAGON template path",
+            description="Path to the DRAGON template to be rendered",
         ),
     ]
     return settings
@@ -96,15 +94,11 @@ def defineValidators(inspector):
             inspector.NO_ACTION,
         ),
         settingsValidation.Query(
-            lambda: inspector.cs[CONF_DRAGON_TEMPLATE_HELPER] is not None
-            and not pathTools.moduleAndAttributeExist(
-                inspector.cs[CONF_DRAGON_TEMPLATE_HELPER]
-            ),
-            "Could not find the DRAGON template helper class described {}. Run will"
-            "likely fail during lattice physics calculation.".format(
-                inspector.cs[CONF_DRAGON_TEMPLATE_HELPER]
-            ),
-            "Please update path to point to a module and class that exist.",
+            lambda: not os.path.exists(inspector.cs[CONF_DRAGON_TEMPLATE_PATH]),
+            "The path specified to the DRAGON template file in the "
+            f"`{CONF_DRAGON_TEMPLATE_PATH}` setting does not exist: "
+            f"{inspector.cs[CONF_DRAGON_TEMPLATE_PATH]}",
+            "Please update to the correct location.",
             inspector.NO_ACTION,
         ),
     ]

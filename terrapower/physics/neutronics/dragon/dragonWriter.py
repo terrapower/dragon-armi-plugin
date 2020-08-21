@@ -14,7 +14,17 @@
 
 """
 Write DRAGON inputs based on data contained in ARMI objects.
+
+This uses templates and attempts to do most of the logic in code
+to build the appropriate data structures. Then, the template engine
+is responsible for transforming that data into the format required
+for DRAGON to process it as input.
+
+Classes here are intended to be specialized with more design-specific
+subclasess in design-specific ARMI apps (or other clients).
 """
+
+from collections import namedtuple
 
 from jinja2 import Template
 
@@ -26,37 +36,41 @@ from armi.reactor.flags import Flags
 
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
 
+MixtureNuclide = namedtuple(
+    "MixtureNuclide", ["armiName", "dragName", "xsid", "ndens", "selfshield"]
+)
+
 
 class DragonWriter:
     """
-    Write DRAGON input file based on a template.
+    Write a DRAGON input file using a template.
 
-    Makes a 0D cross section case by default.
-
-    Notes
-    -----
-    Customize the template and the template data collecting for more sophisticated cases.
+    This base class should strive to avoid any design-specific assumptions.
     """
 
-    def __init__(self, block, options):
+    def __init__(self, armiObjs, options):
         """
-        Initialize a writer for this block.
+        Initialize a writer.
 
         Parameters
         ----------
-        block : Block
-            The ARMI block object to process into template data.
+        armiObjs : list
+            The ARMI object(s) to process into template data. These represent the parts of
+            a reactor you want to model.
         options : DragonOptions
             Data structure that contains execution and modeling controls
         """
-        self.b = block
+        self.armiObjs = armiObjs
         self.options = options
+
+    def __str__(self):
+        return f"<DragonWriter for {str(self.armiObjs)[:15]}...>"
 
     def write(self):
         """
         Write a DRAGON input file.
         """
-        runLog.info(f"Writing DRAGON input based on: {self.b}")
+        runLog.info(f"Writing input with {self}")
 
         templateData = self._buildTemplateData()
         template = self._readTemplate()
@@ -70,131 +84,79 @@ class DragonWriter:
 
     def _buildTemplateData(self):
         """
-        Return a dictionary to be sent to the template to produce the DRAGON input.
+        Return data to be sent to the template to produce the DRAGON input.
         """
-        blockNDensCard = self._getDragonNDensCard(self.b)
-
-        # Smallest outer dimension first.
-        # See component getBoundingCircleOuterDiameter which is used by __lt__.
-        orderedComponents = sorted(self.b)
-        componentTemp = tuple(
-            units.getTk(Tc=c.temperatureInC) for c in orderedComponents
-        )
-        componentNDensCard = tuple(
-            self._getDragonNDensCard(c) for c in orderedComponents
-        )
-
-        # DRAGON only needs inner boundaries it assumes lowest boundary is 0 ev
-        # and the upper most boundary is the highest energy fine group boundary in the
-        # specified library.
-        innerBoundaries = units.GROUP_STRUCTURE[self.options.groupStructure][1:]
-
-        # a data class could be used here, but considering an external python script
-        # will augment this, a simple dictionary is more flexible.
         templateData = {
             "xsId": self.options.xsID,
             "nucData": self.options.libDataFileShort,
             "nucDataComment": self.options.libDataFile,  # full path
-            "tempFuelInKelvin": self._getFuelTempInK(),
-            "blockNDensCard": blockNDensCard,
-            "tempComponentsInKelvin": componentTemp,
-            "componentNDensCard": componentNDensCard,
-            "buckling": self.options.xsSettings.criticalBuckling,
-            "groupStructure": innerBoundaries,
-            "components": orderedComponents,
-            "block": self.b,  # include block so that templates have some flexibility
+            "groupStructure": self._makeGroupStructure(),
         }
         return templateData
 
-    def _getDragonNDensCard(self, armiObj):
+    def _makeGroupStructure(self):
         """
-        Write the armi object as a number density for DRAGON.
+        Make energy group structure bounds.
 
-        Parameters
-        ----------
-        armiObj : ArmiObject
-            The ARMI object to write data for. ArmiObject, and anything that inherits
-            from it implements density and getNuclideNumberDensities.
+        DRAGON only needs group boundary values between 0 and the max. It assumes lowest
+        boundary is 0 eV and the upper most boundary is the highest energy fine group boundary
+        in the specified library.
         """
-        nucs = self.options.nuclides
+        return units.GROUP_STRUCTURE[self.options.groupStructure][1:]
 
-        nDensCardData = []
-        mixtureMassDensity = armiObj.density()
-        numberDensities = armiObj.getNuclideNumberDensities(nucs)
-        totalADensityModeled = sum(numberDensities)
-        if not totalADensityModeled:
-            # This is an empty armiObj. Can happen with zero-volume dummy components.
-            # This this writer's job is to accurately reflect the state of the reactor,
-            # we simply return an emtpy set of number densities.
-            return nDensCardData
-        for nucName, nDens in zip(nucs, numberDensities):
-            nuclideBase = nuclideBases.byName[nucName]
-            if isinstance(
-                nuclideBase,
-                (nuclideBases.LumpNuclideBase, nuclideBases.DummyNuclideBase),
-            ):
-                # DRAGON interface does not currently expand fission products.
-                continue
 
-            dragonId = self.getDragLibNucID(nuclideBase)
+class DragonWriterHomogenized(DragonWriter):
+    """
+    Write DRAGON inputs with homogenized compositions.
 
-            # Figuring out how to structure resonant region index (inrs)
-            # requires some engineering judgment, and this structure allows template
-            # creators to apply their own judgment.
-            # There is some basic data that templates filter out of
-            # self shielding (SS) calculation, or apply different inrs to nuclides.
-            selfShieldingFilterData = {
-                # Sometimes very low density components must be filtered from
-                # self shielding (by not setting inrs) for the SS to run.
-                "mixtureMassDensity": mixtureMassDensity,
-                # Heavy metals should almost always have SS.
-                "heavyMetal": nuclideBase.isHeavyMetal(),
-                # Sometimes it makes sense to filter out minor nuclides from SS.
-                "atomFrac": nDens / totalADensityModeled,
+    This subclass assumes that the DRAGON case will represent one or 
+    more armi objects.
+
+    The current implementation is capable of writing MIX cards for multiple
+    compositions at once but does not yet have the ability to write geometry
+    representation for anything beyond 0-D.
+    """
+
+    def _buildTemplateData(self):
+        templateData = DragonWriter._buildTemplateData(self)
+
+        templateData.update(
+            {
+                "mixtures": self._makeMixtures(),
+                "buckling": self.options.xsSettings.criticalBuckling,
             }
+        )
+        return templateData
 
-            # This density may be 0.0, and DRAGON will run fine.
-            nDensCardData.append(
-                (
-                    f"{nuclideBase.label}{self.options.xsID}",
-                    dragonId,
-                    nDens,
-                    selfShieldingFilterData,
-                )
-            )
-        return nDensCardData
+    def _makeMixtures(self):
+        """Make a DragonMixture from each object slated for inclusion in the input."""
+        return [DragonMixture(obj, self.options) for obj in self.armiObjs]
 
-    @staticmethod
-    def getDragLibNucID(nucBase):
+
+class DragonMixture:
+    """
+    Data structure for a single mixture in Dragon.
+
+    Each mixture has:
+        * A temperature
+        * A number density vector
+        * A mapping between library names and internal nuclide names
+        * A self-shielding vector
+
+    """
+
+    def __init__(self, armiObj, options):
+        self.armiObj = armiObj
+        self.options = options
+
+    def getTempInK(self):
         """
-        Return the DRAGLIB isotope name for this nuclide.
-        
-        Parameters
-        ----------
-        nucBase : NuclideBase
-            The nuclide to get the DRAGLIB ID for.
+        Return the mixture temperature in Kelvin.
 
         Notes
         -----
-        These IDs are compatible with DRAGLIB nuclear data format which is available:
-        https://www.polymtl.ca/merlin/libraries.htm
-        """
-        metastable = nucBase.state
-        # DRAGON is case sensitive on nuc names so lower().capitalize() matters.
-        dragLibId = f"{nucBase.element.symbol.lower().capitalize()}{nucBase.a}"
-        if metastable > 0:
-            # Am242m, etc
-            dragLibId += "m"
-        return dragLibId
-
-    def _getFuelTempInK(self):
-        """
-        Return the fuel temperature in Kelvin.
-
-        Notes
-        -----
-        Only 1 temperature can be specified per mixture in DRAGON. For this 0-D
-        case, the temperature of the fuel component is used for the entire
+        Only 1 temperature can be specified per mixture in DRAGON. For 0-D
+        cases, the temperature of the fuel component is used for the entire
         mixture. 
 
         For heterogeneous models, component temperature should be used.
@@ -209,8 +171,77 @@ class DragonWriter:
         """
         avgNum = 0.0
         avgDenom = 0.0
-        for fuel in self.b.getChildrenWithFlags(Flags.FUEL):
+        for fuel in self.armiObj.getChildrenWithFlags(Flags.FUEL):
             vol = fuel.getArea()
             avgNum += fuel.temperatureInC * vol
             avgDenom += vol
         return units.getTk(Tc=avgNum / avgDenom)
+
+    def getMixVector(self):
+        """
+        Generate mixture composition table.
+        """
+        nucs = self.options.nuclides
+        nucData = []
+        numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
+        if not any(numberDensities):
+            # This is an empty armiObj. Can happen with zero-volume dummy components.
+            # This this writer's job is to accurately reflect the state of the reactor,
+            # we simply return an emtpy set of number densities.
+            return nucData
+        for nucName, nDens in zip(nucs, numberDensities):
+            nuclideBase = nuclideBases.byName[nucName]
+            if isinstance(
+                nuclideBase,
+                (nuclideBases.LumpNuclideBase, nuclideBases.DummyNuclideBase),
+            ):
+                # This skips lumped fission products.
+                continue
+
+            nucData.append(
+                MixtureNuclide(
+                    armiName=nuclideBase.label,
+                    xsid=self.options.xsID,
+                    dragName=getDragLibNucID(nuclideBase),
+                    ndens=nDens,
+                    selfshield=self.getSelfShieldingFlag(nuclideBase, nDens),
+                )
+            )
+        return nucData
+
+    def getSelfShieldingFlag(self, nucBase, nDens):  # pylint: disable=unused-argument
+        """
+        Get self shielding flag for a given nuclide.
+
+        Figuring out how to structure resonant region index (inrs)
+        requires some engineering judgment, and this structure allows template
+        creators to apply their own judgment.
+        There is some basic data that templates filter out of
+        self shielding (SS) calculation, or apply different inrs to nuclides.
+        """
+        if nucBase.isHeavyMetal() or self.armiObj.density() > 0.01:
+            return "1"
+        return ""
+
+
+def getDragLibNucID(nucBase):
+    """
+    Return the DRAGLIB isotope name for this nuclide.
+    
+    Parameters
+    ----------
+    nucBase : NuclideBase
+        The nuclide to get the DRAGLIB ID for.
+
+    Notes
+    -----
+    These IDs are compatible with DRAGLIB nuclear data format which is available:
+    https://www.polymtl.ca/merlin/libraries.htm
+    """
+    metastable = nucBase.state
+    # DRAGON is case sensitive on nuc names so lower().capitalize() matters.
+    dragLibId = f"{nucBase.element.symbol.lower().capitalize()}{nucBase.a}"
+    if metastable > 0:
+        # Am242m, etc
+        dragLibId += "m"
+    return dragLibId
