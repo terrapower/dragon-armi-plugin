@@ -52,13 +52,13 @@ LIBRARY := LIB: ::
   NMIX {{mixtures|length}} CTRA WIMS
   ! Only 8 chars allowed. Actual data used: {{ nucDataComment }}
   MIXS LIB: DRAGON FIL: {{ nucData }} 
-{%- for mixture in mixtures -%}
+{% for mixture in mixtures %}
   MIX {{loop.index}} {{"{:5f}".format(mixture.getTempInK())}}
 {%- for mixNuc in mixture.getMixVector() -%}
 {{"\n   {:>5}{:2} = {:>7}   {:.6E} {:>3}".format(
 mixNuc.armiName, mixNuc.xsid, mixNuc.dragName, mixNuc.ndens, mixNuc.selfshield)}}
-{%- endfor %}
-{%- endfor %}
+{%- endfor -%}
+{% endfor %}
   ;
 *----
 *  Geometry HOM : Homogeneous geometry

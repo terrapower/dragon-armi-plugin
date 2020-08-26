@@ -138,6 +138,7 @@ class DragonExecuter:
             self.options.outputFile,
             # rename isotxs on way back to the shared directory
             (self.options.outputIsotxsName, f"ISO{self.options.xsID}"),
+            "*.ps",
         )
         return inputs, outputs
 

@@ -130,7 +130,9 @@ class DragonWriterHomogenized(DragonWriter):
 
     def _makeMixtures(self):
         """Make a DragonMixture from each object slated for inclusion in the input."""
-        return [DragonMixture(obj, self.options) for obj in self.armiObjs]
+        return [
+            DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)
+        ]
 
 
 class DragonMixture:
@@ -145,9 +147,10 @@ class DragonMixture:
 
     """
 
-    def __init__(self, armiObj, options):
+    def __init__(self, armiObj, options, index):
         self.armiObj = armiObj
         self.options = options
+        self.index = index
 
     def getTempInK(self):
         """
@@ -213,7 +216,8 @@ class DragonMixture:
             )
         return nucData
 
-    def getSelfShieldingFlag(self, nucBase, nDens):  # pylint: disable=unused-argument
+    # pylint: disable=unused-argument
+    def getSelfShieldingFlag(self, nucBase, nDens) -> str:
         """
         Get self shielding flag for a given nuclide.
 
@@ -222,9 +226,11 @@ class DragonMixture:
         creators to apply their own judgment.
         There is some basic data that templates filter out of
         self shielding (SS) calculation, or apply different inrs to nuclides.
+
+        Need index to make sure each mixture gets different fine-group flux.
         """
-        if nucBase.isHeavyMetal() or self.armiObj.density() > 0.01:
-            return "1"
+        if nucBase.isHeavyMetal() or self.armiObj.density() > 0.0001:
+            return f"{self.index + 1}"
         return ""
 
 
