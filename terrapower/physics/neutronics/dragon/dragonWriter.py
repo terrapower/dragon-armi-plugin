@@ -171,7 +171,11 @@ class DragonMixture:
         """
         avgNum = 0.0
         avgDenom = 0.0
-        for fuel in self.armiObj.getChildrenWithFlags(Flags.FUEL):
+        if any(self.armiObj.doChildrenHaveFlags(Flags.FUEL)):
+            typeSpec = Flags.FUEL
+        else:
+            typeSpec = None
+        for fuel in self.armiObj.iterComponents(typeSpec):
             vol = fuel.getArea()
             avgNum += fuel.temperatureInC * vol
             avgDenom += vol

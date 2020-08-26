@@ -143,19 +143,8 @@ class DragonExecuter:
 
     def writeInput(self):
         """Write the input file."""
-        inWriterCls = self._chooseInputWriter()
-        inputWriter = inWriterCls([self.block], self.options)
+        inputWriter = dragonFactory.makeWriter([self.block], self.options)
         inputWriter.write()
-
-    def _chooseInputWriter(self):  # pylint: disable=no-self-use; useful in override
-        """
-        Select an input writer class.
-        
-        Notes
-        -----
-        Intended to be customized via subclassing.
-        """
-        return dragonWriter.DragonWriter
 
     def _execute(self):
         """
@@ -201,3 +190,6 @@ class DragonExecuter:
             outputPaths,
             executeDragon,
         )
+
+
+from .dragonFactory import dragonFactory

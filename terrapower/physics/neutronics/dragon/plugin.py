@@ -18,8 +18,8 @@ DRAGON Plugin
 from armi import plugins
 from armi import interfaces
 
-from . import dragonInterface
 from . import settings
+
 
 ORDER = interfaces.STACK_ORDER.CROSS_SECTIONS
 
@@ -31,6 +31,8 @@ class DragonPlugin(plugins.ArmiPlugin):
     @plugins.HOOKIMPL
     def exposeInterfaces(cs):
         """Function for exposing interface(s) to other code"""
+        from . import dragonInterface
+
         if cs["xsKernel"] == "DRAGON":
             klass = dragonInterface.DragonInterface
             return [interfaces.InterfaceInfo(ORDER, klass, {})]
