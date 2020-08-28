@@ -26,7 +26,9 @@ from armi.nucDirectory import nuclideBases
 from armi.utils import directoryChangers
 from armi.utils import units
 from armi.physics.neutronics.const import CONF_CROSS_SECTION
+
 from armi.localization import exceptions
+from armi.physics.neutronics import energyGroups
 
 from terrapower.physics.neutronics.dragon import dragonInterface
 from terrapower.physics.neutronics.dragon import dragonWriter
@@ -93,7 +95,7 @@ class TestDragonInterface(unittest.TestCase):
         self.assertEqual(data["buckling"], bool(self.xsSettings.criticalBuckling))
         self.assertEqual(
             len(data["groupStructure"]),
-            len(units.GROUP_STRUCTURE[self.cs["groupStructure"]]) - 1,
+            len(energyGroups.getGroupStructure(self.cs["groupStructure"])) - 1,
             "DRAGON only includes inner group boundaries so there should be 1 less.",
         )
         self.assertEqual(len(data["components"]), len(self.writer.b))

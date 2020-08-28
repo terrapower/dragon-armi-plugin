@@ -22,6 +22,7 @@ from armi.utils import units
 from armi.nucDirectory import nuclideBases
 from armi import runLog
 from armi.reactor.flags import Flags
+from armi.physics.neutronics import energyGroups
 
 
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
@@ -87,7 +88,9 @@ class DragonWriter:
         # DRAGON only needs inner boundaries it assumes lowest boundary is 0 ev
         # and the upper most boundary is the highest energy fine group boundary in the
         # specified library.
-        innerBoundaries = units.GROUP_STRUCTURE[self.options.groupStructure][1:]
+        innerBoundaries = energyGroups.getGroupStructure(self.options.groupStructure)[
+            1:
+        ]
 
         # a data class could be used here, but considering an external python script
         # will augment this, a simple dictionary is more flexible.
