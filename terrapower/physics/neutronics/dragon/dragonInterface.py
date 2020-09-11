@@ -53,9 +53,9 @@ class DragonRunner(mpiActions.MpiAction):
             self.r.syncMpiState()
 
     def _buildExecuterForBlock(self, b):
+        """Build options and executers for a block."""
         from . import dragonExecutor
 
-        """Build options and executers for a block."""
         opts = dragonExecutor.DragonOptions(
             label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}"
         )

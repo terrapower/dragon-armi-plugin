@@ -21,7 +21,8 @@ and ARMI (objects such as block) to a template, and the template is filled out t
 the input file
 
 DRAGON can also model more complex geometry, but users are responsible for creating
-their own template and associated data extraction to model the needed geometry
+their own template and associated code that extracts the required template information
+from the ARMI data model for the desired geometry.
 
 Use
 ---

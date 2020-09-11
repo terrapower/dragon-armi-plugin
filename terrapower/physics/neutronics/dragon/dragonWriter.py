@@ -24,21 +24,23 @@ Classes here are intended to be specialized with more design-specific
 subclasess in design-specific ARMI apps (or other clients).
 """
 
-from collections import namedtuple
+from typing import NamedTuple
 
 from jinja2 import Template
 
+from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
 from armi.utils import units
-from armi.nucDirectory import nuclideBases
+from armi.nucDirectory import nuclideBases as nb
+from armi.nucDirectory import thermalScattering as tsl
 from armi import runLog
 from armi.reactor.flags import Flags
 
-
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
 
-MixtureNuclide = namedtuple(
-    "MixtureNuclide", ["armiName", "dragName", "xsid", "ndens", "selfshield"]
-)
+
+# mapping between thermal scattering laws and DRAGON lib names.
+# unfortunately this is library specific so that will need to be treated somehow.
+DRAGON_TSL = {tsl.byNbAndCompound[nb.byName["C"], tsl.GRAPHITE_10P]: "C12_GR"}
 
 
 class DragonWriter:
@@ -102,7 +104,7 @@ class DragonWriter:
         boundary is 0 eV and the upper most boundary is the highest energy fine group boundary
         in the specified library.
         """
-        return units.GROUP_STRUCTURE[self.options.groupStructure][1:]
+        return GROUP_STRUCTURE[self.options.groupStructure][1:]
 
 
 class DragonWriterHomogenized(DragonWriter):
@@ -135,11 +137,21 @@ class DragonWriterHomogenized(DragonWriter):
         ]
 
 
+class MixtureNuclide(NamedTuple):
+    """Data structure for a nuclide in a DRAGON mixture."""
+
+    armiName: str
+    dragName: str
+    xsid: str
+    ndens: float
+    selfShield: str
+
+
 class DragonMixture:
     """
     Data structure for a single mixture in Dragon.
 
-    Each mixture has:
+    Each mixture can be associated with:
         * A temperature
         * A number density vector
         * A mapping between library names and internal nuclide names
@@ -191,17 +203,15 @@ class DragonMixture:
         nucs = self.options.nuclides
         nucData = []
         numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
+        thermalScatteringInfo = tsl.getNuclideThermalScatteringData(self.armiObj)
         if not any(numberDensities):
             # This is an empty armiObj. Can happen with zero-volume dummy components.
-            # This this writer's job is to accurately reflect the state of the reactor,
-            # we simply return an emtpy set of number densities.
-            return nucData
+            # This writer's job is to accurately reflect the state of the reactor,
+            # we simply return an empty set of number densities.
+            return []
         for nucName, nDens in zip(nucs, numberDensities):
-            nuclideBase = nuclideBases.byName[nucName]
-            if isinstance(
-                nuclideBase,
-                (nuclideBases.LumpNuclideBase, nuclideBases.DummyNuclideBase),
-            ):
+            nuclideBase = nb.byName[nucName]
+            if isinstance(nuclideBase, (nb.LumpNuclideBase, nb.DummyNuclideBase),):
                 # This skips lumped fission products.
                 continue
 
@@ -209,9 +219,9 @@ class DragonMixture:
                 MixtureNuclide(
                     armiName=nuclideBase.label,
                     xsid=self.options.xsID,
-                    dragName=getDragLibNucID(nuclideBase),
+                    dragName=getDragLibNucID(nuclideBase, thermalScatteringInfo),
                     ndens=nDens,
-                    selfshield=self.getSelfShieldingFlag(nuclideBase, nDens),
+                    selfShield=self.getSelfShieldingFlag(nuclideBase, nDens),
                 )
             )
         return nucData
@@ -222,19 +232,18 @@ class DragonMixture:
         Get self shielding flag for a given nuclide.
 
         Figuring out how to structure resonant region index (inrs)
-        requires some engineering judgment, and this structure allows template
-        creators to apply their own judgment.
-        There is some basic data that templates filter out of
-        self shielding (SS) calculation, or apply different inrs to nuclides.
+        requires some engineering judgment.
 
         Need index to make sure each mixture gets different fine-group flux.
+
+        Flags self-sheilding if density is greater than a threshold or if it is a heavy metal
         """
         if nucBase.isHeavyMetal() or self.armiObj.density() > 0.0001:
             return f"{self.index + 1}"
         return ""
 
 
-def getDragLibNucID(nucBase):
+def getDragLibNucID(nucBase, thermalScatteringInfo):
     """
     Return the DRAGLIB isotope name for this nuclide.
     
@@ -249,9 +258,13 @@ def getDragLibNucID(nucBase):
     https://www.polymtl.ca/merlin/libraries.htm
     """
     metastable = nucBase.state
-    # DRAGON is case sensitive on nuc names so lower().capitalize() matters.
-    dragLibId = f"{nucBase.element.symbol.lower().capitalize()}{nucBase.a}"
-    if metastable > 0:
-        # Am242m, etc
-        dragLibId += "m"
+    if nucBase in thermalScatteringInfo:
+        # use DRAGON-specific thermal scattering names. These are unfortunately library-specific
+        dragLibId = DRAGON_TSL[thermalScatteringInfo[nucBase]]
+    else:
+        # DRAGON is case sensitive on nuc names so lower().capitalize() matters.
+        dragLibId = f"{nucBase.element.symbol.lower().capitalize()}{nucBase.a}"
+        if metastable > 0:
+            # Am242m, etc
+            dragLibId += "m"
     return dragLibId
