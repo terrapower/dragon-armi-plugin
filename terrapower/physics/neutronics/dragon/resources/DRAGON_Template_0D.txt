@@ -56,7 +56,7 @@ LIBRARY := LIB: ::
   MIX {{loop.index}} {{"{:5f}".format(mixture.getTempInK())}}
 {%- for mixNuc in mixture.getMixVector() -%}
 {{"\n   {:>5}{:2} = {:>7}   {:.6E} {:>3}".format(
-mixNuc.armiName, mixNuc.xsid, mixNuc.dragName, mixNuc.ndens, mixNuc.selfshield)}}
+mixNuc.armiName, mixNuc.xsid, mixNuc.dragName, mixNuc.ndens, mixNuc.selfShield)}}
 {%- endfor -%}
 {% endfor %}
   ;

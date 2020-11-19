@@ -16,10 +16,10 @@
 import os
 import shutil
 
-from armi.utils import units
 from armi.settings import setting
 from armi.operators import settingsValidation
 from armi.physics.neutronics import settings as neutronicsSettings
+from armi.physics.neutronics import energyGroups
 
 CONF_DRAGON_PATH = "dragonExePath"
 CONF_DRAGON_DATA_PATH = "dragonDataPath"
@@ -78,7 +78,8 @@ def defineValidators(inspector):
             inspector.NO_ACTION,
         ),
         settingsValidation.Query(
-            lambda: len(units.GROUP_STRUCTURE[inspector.cs["groupStructure"]]) > 33,
+            lambda: len(energyGroups.getGroupStructure(inspector.cs["groupStructure"]))
+            > 33,
             "DRAGON does not run well with more than 33 groups due to calculating "
             "<400 fine groups. This few number of fine groups may not map well onto "
             "more than 33 groups.",

@@ -24,3 +24,18 @@ register it in your app with code like::
         def __init__(self):
             App.__init__(self)
             self._pm.register(DragonPlugin)
+
+
+.. list-table:: Quick links
+   :widths: 30 70
+
+   * - Source code
+     - https://github.com/terrapower/dragon-armi-plugin
+   * - Documentation
+     - https://terrapower.github.io/dragon-plugin
+   * - Bug tracker
+     - https://github.com/terrapower/dragon-armi-plugin/issues
+   * - Plugin directory
+     - https://github.com/terrapower/armi-plugin-directory
+   * - Contact
+     - armi-devs@terrapower.com

@@ -34,6 +34,7 @@ from armi.nucDirectory import nuclideBases as nb
 from armi.nucDirectory import thermalScattering as tsl
 from armi import runLog
 from armi.reactor.flags import Flags
+from armi.physics.neutronics import energyGroups
 
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
 
@@ -111,7 +112,7 @@ class DragonWriterHomogenized(DragonWriter):
     """
     Write DRAGON inputs with homogenized compositions.
 
-    This subclass assumes that the DRAGON case will represent one or 
+    This subclass assumes that the DRAGON case will represent one or
     more armi objects.
 
     The current implementation is capable of writing MIX cards for multiple
@@ -172,16 +173,16 @@ class DragonMixture:
         -----
         Only 1 temperature can be specified per mixture in DRAGON. For 0-D
         cases, the temperature of the fuel component is used for the entire
-        mixture. 
+        mixture.
 
         For heterogeneous models, component temperature should be used.
-        Component temperature may not work well yet for non BOL cases since 
+        Component temperature may not work well yet for non BOL cases since
 
-        .. warning:: 
+        .. warning::
             The ARMI cross section group manager does not currently set the
             fuel component temperature to the average component temperatures
-            when making a representative block. Thus, for the time being, 
-            fuel temperature of an arbitrary block in each representative 
+            when making a representative block. Thus, for the time being,
+            fuel temperature of an arbitrary block in each representative
             block's parents will be obtained.
         """
         avgNum = 0.0
@@ -203,7 +204,7 @@ class DragonMixture:
         nucs = self.options.nuclides
         nucData = []
         numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
-        thermalScatteringInfo = tsl.getNuclideThermalScatteringData(self.armiObj)
+        thermalScatteringInfo = getNuclideThermalScatteringData(self.armiObj)
         if not any(numberDensities):
             # This is an empty armiObj. Can happen with zero-volume dummy components.
             # This writer's job is to accurately reflect the state of the reactor,
@@ -211,7 +212,10 @@ class DragonMixture:
             return []
         for nucName, nDens in zip(nucs, numberDensities):
             nuclideBase = nb.byName[nucName]
-            if isinstance(nuclideBase, (nb.LumpNuclideBase, nb.DummyNuclideBase),):
+            if isinstance(
+                nuclideBase,
+                (nb.LumpNuclideBase, nb.DummyNuclideBase),
+            ):
                 # This skips lumped fission products.
                 continue
 
@@ -246,7 +250,7 @@ class DragonMixture:
 def getDragLibNucID(nucBase, thermalScatteringInfo):
     """
     Return the DRAGLIB isotope name for this nuclide.
-    
+
     Parameters
     ----------
     nucBase : NuclideBase
@@ -268,3 +272,64 @@ def getDragLibNucID(nucBase, thermalScatteringInfo):
             # Am242m, etc
             dragLibId += "m"
     return dragLibId
+
+
+def getNuclideThermalScatteringData(armiObj):
+    """
+    Make a mapping between nuclideBases in an armiObj and relevant thermal scattering laws.
+
+    In some cases, a nuclide will be present both with a TSL and without (e.g. hydrogen in water
+    and hydrogen in concrete in the same armiObj). While this could conceptually be handled
+    somehow, we simply error out at this time.
+
+    Notes
+    -----
+    This code is copy/pasted originally from the test case in the framework. The code
+    reviewer would not allow this to be put in the framework so we are forced to copy
+    paste... Sorry.
+
+    Returns
+    -------
+    tslByNuclideBase : dict
+        A dictionary with NuclideBase keys and ThermalScattering values
+
+    Raises
+    ------
+    RuntimeError
+        When a armiObj has nuclides subject to more than one TSL, or subject to a TLS
+        in one case and no TSL in another.
+
+    Examples
+    --------
+    >>> tslInfo = getNuclideThermalScatteringData(armiObj)
+    >>> if nucBase in tslInfo:
+    >>>     aceLabel = tslInfo[nucBase].aceLabel
+    """
+    tslByNuclideBase = {}
+    freeNuclideBases = set()
+    for c in armiObj.iterComponents():
+        nucs = {nb.byName[nn] for nn in c.getNuclides()}
+        freeNucsHere = set()
+        freeNucsHere.update(nucs)
+        for tsl in c.material.thermalScatteringLaws:
+            for subjectNb in tsl.getSubjectNuclideBases():
+                if subjectNb in nucs:
+                    if (
+                        subjectNb in tslByNuclideBase
+                        and tslByNuclideBase[subjectNb] is not tsl
+                    ):
+                        raise RuntimeError(
+                            f"{subjectNb} in {armiObj} is subject to more than 1 different TSL: "
+                            f"{tsl} and {tslByNuclideBase[subjectNb]}"
+                        )
+                    tslByNuclideBase[subjectNb] = tsl
+                    freeNucsHere.remove(subjectNb)
+        freeNuclideBases.update(freeNucsHere)
+
+    freeAndBound = freeNuclideBases.intersection(set(tslByNuclideBase.keys()))
+    if freeAndBound:
+        raise RuntimeError(
+            f"{freeAndBound} is/are present in both bound and free forms in {armiObj}"
+        )
+
+    return tslByNuclideBase
