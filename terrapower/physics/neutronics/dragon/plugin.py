@@ -17,6 +17,7 @@ DRAGON Plugin
 """
 from armi import plugins
 from armi import interfaces
+from armi.physics.neutronics import settings as nSettings
 
 from . import dragonInterface
 from . import settings
@@ -31,7 +32,10 @@ class DragonPlugin(plugins.ArmiPlugin):
     @plugins.HOOKIMPL
     def exposeInterfaces(cs):
         """Function for exposing interface(s) to other code"""
-        if cs["xsKernel"] == "DRAGON":
+        if (
+            cs[nSettings.CONF_XS_KERNEL] == "DRAGON"
+            and "Neutron" in cs[nSettings.CONF_GEN_XS]
+        ):
             klass = dragonInterface.DragonInterface
             return [interfaces.InterfaceInfo(ORDER, klass, {})]
         return []
