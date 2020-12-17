@@ -14,50 +14,66 @@
 
 """
 Write DRAGON inputs based on data contained in ARMI objects.
+
+This uses templates and attempts to do most of the logic in code
+to build the appropriate data structures. Then, the template engine
+is responsible for transforming that data into the format required
+for DRAGON to process it as input.
+
+Classes here are intended to be specialized with more design-specific
+subclasess in design-specific ARMI apps (or other clients).
 """
+
+from typing import NamedTuple
 
 from jinja2 import Template
 
+from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
 from armi.utils import units
-from armi.nucDirectory import nuclideBases
+from armi.nucDirectory import nuclideBases as nb
+from armi.nucDirectory import thermalScattering as tsl
 from armi import runLog
 from armi.reactor.flags import Flags
 from armi.physics.neutronics import energyGroups
 
-
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
+
+
+# mapping between thermal scattering laws and DRAGON lib names.
+# unfortunately this is library specific so that will need to be treated somehow.
+DRAGON_TSL = {tsl.byNbAndCompound[nb.byName["C"], tsl.GRAPHITE_10P]: "C12_GR"}
 
 
 class DragonWriter:
     """
-    Write DRAGON input file based on a template.
+    Write a DRAGON input file using a template.
 
-    Makes a 0D cross section case by default.
-
-    Notes
-    -----
-    Customize the template and the template data collecting for more sophisticated cases.
+    This base class should strive to avoid any design-specific assumptions.
     """
 
-    def __init__(self, block, options):
+    def __init__(self, armiObjs, options):
         """
-        Initialize a writer for this block.
+        Initialize a writer.
 
         Parameters
         ----------
-        block : Block
-            The ARMI block object to process into template data.
+        armiObjs : list
+            The ARMI object(s) to process into template data. These represent the parts of
+            a reactor you want to model.
         options : DragonOptions
             Data structure that contains execution and modeling controls
         """
-        self.b = block
+        self.armiObjs = armiObjs
         self.options = options
+
+    def __str__(self):
+        return f"<DragonWriter for {str(self.armiObjs)[:15]}...>"
 
     def write(self):
         """
         Write a DRAGON input file.
         """
-        runLog.info(f"Writing DRAGON input based on: {self.b}")
+        runLog.info(f"Writing input with {self}")
 
         templateData = self._buildTemplateData()
         template = self._readTemplate()
@@ -71,149 +87,249 @@ class DragonWriter:
 
     def _buildTemplateData(self):
         """
-        Return a dictionary to be sent to the template to produce the DRAGON input.
+        Return data to be sent to the template to produce the DRAGON input.
         """
-        blockNDensCard = self._getDragonNDensCard(self.b)
-
-        # Smallest outer dimension first.
-        # See component getBoundingCircleOuterDiameter which is used by __lt__.
-        orderedComponents = sorted(self.b)
-        componentTemp = tuple(
-            units.getTk(Tc=c.temperatureInC) for c in orderedComponents
-        )
-        componentNDensCard = tuple(
-            self._getDragonNDensCard(c) for c in orderedComponents
-        )
-
-        # DRAGON only needs inner boundaries it assumes lowest boundary is 0 ev
-        # and the upper most boundary is the highest energy fine group boundary in the
-        # specified library.
-        innerBoundaries = energyGroups.getGroupStructure(self.options.groupStructure)[
-            1:
-        ]
-
-        # a data class could be used here, but considering an external python script
-        # will augment this, a simple dictionary is more flexible.
         templateData = {
             "xsId": self.options.xsID,
             "nucData": self.options.libDataFileShort,
             "nucDataComment": self.options.libDataFile,  # full path
-            "tempFuelInKelvin": self._getFuelTempInK(),
-            "blockNDensCard": blockNDensCard,
-            "tempComponentsInKelvin": componentTemp,
-            "componentNDensCard": componentNDensCard,
-            "buckling": self.options.xsSettings.criticalBuckling,
-            "groupStructure": innerBoundaries,
-            "components": orderedComponents,
-            "block": self.b,  # include block so that templates have some flexibility
+            "groupStructure": self._makeGroupStructure(),
         }
         return templateData
 
-    def _getDragonNDensCard(self, armiObj):
+    def _makeGroupStructure(self):
         """
-        Write the armi object as a number density for DRAGON.
+        Make energy group structure bounds.
 
-        Parameters
-        ----------
-        armiObj : ArmiObject
-            The ARMI object to write data for. ArmiObject, and anything that inherits
-            from it implements density and getNuclideNumberDensities.
+        DRAGON only needs group boundary values between 0 and the max. It assumes lowest
+        boundary is 0 eV and the upper most boundary is the highest energy fine group boundary
+        in the specified library.
         """
-        nucs = self.options.nuclides
+        return GROUP_STRUCTURE[self.options.groupStructure][1:]
 
-        nDensCardData = []
-        mixtureMassDensity = armiObj.density()
-        numberDensities = armiObj.getNuclideNumberDensities(nucs)
-        totalADensityModeled = sum(numberDensities)
-        if not totalADensityModeled:
-            # This is an empty armiObj. Can happen with zero-volume dummy components.
-            # This this writer's job is to accurately reflect the state of the reactor,
-            # we simply return an emtpy set of number densities.
-            return nDensCardData
-        for nucName, nDens in zip(nucs, numberDensities):
-            nuclideBase = nuclideBases.byName[nucName]
-            if isinstance(
-                nuclideBase,
-                (nuclideBases.LumpNuclideBase, nuclideBases.DummyNuclideBase),
-            ):
-                # DRAGON interface does not currently expand fission products.
-                continue
 
-            dragonId = self.getDragLibNucID(nuclideBase)
+class DragonWriterHomogenized(DragonWriter):
+    """
+    Write DRAGON inputs with homogenized compositions.
 
-            # Figuring out how to structure resonant region index (inrs)
-            # requires some engineering judgment, and this structure allows template
-            # creators to apply their own judgment.
-            # There is some basic data that templates filter out of
-            # self shielding (SS) calculation, or apply different inrs to nuclides.
-            selfShieldingFilterData = {
-                # Sometimes very low density components must be filtered from
-                # self shielding (by not setting inrs) for the SS to run.
-                "mixtureMassDensity": mixtureMassDensity,
-                # Heavy metals should almost always have SS.
-                "heavyMetal": nuclideBase.isHeavyMetal(),
-                # Sometimes it makes sense to filter out minor nuclides from SS.
-                "atomFrac": nDens / totalADensityModeled,
+    This subclass assumes that the DRAGON case will represent one or
+    more armi objects.
+
+    The current implementation is capable of writing MIX cards for multiple
+    compositions at once but does not yet have the ability to write geometry
+    representation for anything beyond 0-D.
+    """
+
+    def _buildTemplateData(self):
+        templateData = DragonWriter._buildTemplateData(self)
+
+        templateData.update(
+            {
+                "mixtures": self._makeMixtures(),
+                "buckling": self.options.xsSettings.criticalBuckling,
             }
+        )
+        return templateData
 
-            # This density may be 0.0, and DRAGON will run fine.
-            nDensCardData.append(
-                (
-                    f"{nuclideBase.label}{self.options.xsID}",
-                    dragonId,
-                    nDens,
-                    selfShieldingFilterData,
-                )
-            )
-        return nDensCardData
+    def _makeMixtures(self):
+        """Make a DragonMixture from each object slated for inclusion in the input."""
+        return [
+            DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)
+        ]
 
-    @staticmethod
-    def getDragLibNucID(nucBase):
+
+class MixtureNuclide(NamedTuple):
+    """Data structure for a nuclide in a DRAGON mixture."""
+
+    armiName: str
+    dragName: str
+    xsid: str
+    ndens: float
+    selfShield: str
+
+
+class DragonMixture:
+    """
+    Data structure for a single mixture in Dragon.
+
+    Each mixture can be associated with:
+        * A temperature
+        * A number density vector
+        * A mapping between library names and internal nuclide names
+        * A self-shielding vector
+
+    """
+
+    def __init__(self, armiObj, options, index):
+        self.armiObj = armiObj
+        self.options = options
+        self.index = index
+
+    def getTempInK(self):
         """
-        Return the DRAGLIB isotope name for this nuclide.
-        
-        Parameters
-        ----------
-        nucBase : NuclideBase
-            The nuclide to get the DRAGLIB ID for.
+        Return the mixture temperature in Kelvin.
 
         Notes
         -----
-        These IDs are compatible with DRAGLIB nuclear data format which is available:
-        https://www.polymtl.ca/merlin/libraries.htm
+        Only 1 temperature can be specified per mixture in DRAGON. For 0-D
+        cases, the temperature of the fuel component is used for the entire
+        mixture.
+
+        For heterogeneous models, component temperature should be used.
+        Component temperature may not work well yet for non BOL cases since
+
+        .. warning::
+            The ARMI cross section group manager does not currently set the
+            fuel component temperature to the average component temperatures
+            when making a representative block. Thus, for the time being,
+            fuel temperature of an arbitrary block in each representative
+            block's parents will be obtained.
         """
-        metastable = nucBase.state
+        avgNum = 0.0
+        avgDenom = 0.0
+        if any(self.armiObj.doChildrenHaveFlags(Flags.FUEL)):
+            typeSpec = Flags.FUEL
+        else:
+            typeSpec = None
+        for fuel in self.armiObj.iterComponents(typeSpec):
+            vol = fuel.getArea()
+            avgNum += fuel.temperatureInC * vol
+            avgDenom += vol
+        return units.getTk(Tc=avgNum / avgDenom)
+
+    def getMixVector(self):
+        """
+        Generate mixture composition table.
+        """
+        nucs = self.options.nuclides
+        nucData = []
+        numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
+        thermalScatteringInfo = getNuclideThermalScatteringData(self.armiObj)
+        if not any(numberDensities):
+            # This is an empty armiObj. Can happen with zero-volume dummy components.
+            # This writer's job is to accurately reflect the state of the reactor,
+            # we simply return an empty set of number densities.
+            return []
+        for nucName, nDens in zip(nucs, numberDensities):
+            nuclideBase = nb.byName[nucName]
+            if isinstance(
+                nuclideBase,
+                (nb.LumpNuclideBase, nb.DummyNuclideBase),
+            ):
+                # This skips lumped fission products.
+                continue
+
+            nucData.append(
+                MixtureNuclide(
+                    armiName=nuclideBase.label,
+                    xsid=self.options.xsID,
+                    dragName=getDragLibNucID(nuclideBase, thermalScatteringInfo),
+                    ndens=nDens,
+                    selfShield=self.getSelfShieldingFlag(nuclideBase, nDens),
+                )
+            )
+        return nucData
+
+    # pylint: disable=unused-argument
+    def getSelfShieldingFlag(self, nucBase, nDens) -> str:
+        """
+        Get self shielding flag for a given nuclide.
+
+        Figuring out how to structure resonant region index (inrs)
+        requires some engineering judgment.
+
+        Need index to make sure each mixture gets different fine-group flux.
+
+        Flags self-sheilding if density is greater than a threshold or if it is a heavy metal
+        """
+        if nucBase.isHeavyMetal() or self.armiObj.density() > 0.0001:
+            return f"{self.index + 1}"
+        return ""
+
+
+def getDragLibNucID(nucBase, thermalScatteringInfo):
+    """
+    Return the DRAGLIB isotope name for this nuclide.
+
+    Parameters
+    ----------
+    nucBase : NuclideBase
+        The nuclide to get the DRAGLIB ID for.
+
+    Notes
+    -----
+    These IDs are compatible with DRAGLIB nuclear data format which is available:
+    https://www.polymtl.ca/merlin/libraries.htm
+    """
+    metastable = nucBase.state
+    if nucBase in thermalScatteringInfo:
+        # use DRAGON-specific thermal scattering names. These are unfortunately library-specific
+        dragLibId = DRAGON_TSL[thermalScatteringInfo[nucBase]]
+    else:
         # DRAGON is case sensitive on nuc names so lower().capitalize() matters.
         dragLibId = f"{nucBase.element.symbol.lower().capitalize()}{nucBase.a}"
         if metastable > 0:
             # Am242m, etc
             dragLibId += "m"
-        return dragLibId
+    return dragLibId
 
-    def _getFuelTempInK(self):
-        """
-        Return the fuel temperature in Kelvin.
 
-        Notes
-        -----
-        Only 1 temperature can be specified per mixture in DRAGON. For this 0-D
-        case, the temperature of the fuel component is used for the entire
-        mixture. 
+def getNuclideThermalScatteringData(armiObj):
+    """
+    Make a mapping between nuclideBases in an armiObj and relevant thermal scattering laws.
 
-        For heterogeneous models, component temperature should be used.
-        Component temperature may not work well yet for non BOL cases since 
+    In some cases, a nuclide will be present both with a TSL and without (e.g. hydrogen in water
+    and hydrogen in concrete in the same armiObj). While this could conceptually be handled
+    somehow, we simply error out at this time.
 
-        .. warning:: 
-            The ARMI cross section group manager does not currently set the
-            fuel component temperature to the average component temperatures
-            when making a representative block. Thus, for the time being, 
-            fuel temperature of an arbitrary block in each representative 
-            block's parents will be obtained.
-        """
-        avgNum = 0.0
-        avgDenom = 0.0
-        for fuel in self.b.getChildrenWithFlags(Flags.FUEL):
-            vol = fuel.getArea()
-            avgNum += fuel.temperatureInC * vol
-            avgDenom += vol
-        return units.getTk(Tc=avgNum / avgDenom)
+    Notes
+    -----
+    This code is copy/pasted originally from the test case in the framework. The code
+    reviewer would not allow this to be put in the framework so we are forced to copy
+    paste... Sorry.
+
+    Returns
+    -------
+    tslByNuclideBase : dict
+        A dictionary with NuclideBase keys and ThermalScattering values
+
+    Raises
+    ------
+    RuntimeError
+        When a armiObj has nuclides subject to more than one TSL, or subject to a TLS
+        in one case and no TSL in another.
+
+    Examples
+    --------
+    >>> tslInfo = getNuclideThermalScatteringData(armiObj)
+    >>> if nucBase in tslInfo:
+    >>>     aceLabel = tslInfo[nucBase].aceLabel
+    """
+    tslByNuclideBase = {}
+    freeNuclideBases = set()
+    for c in armiObj.iterComponents():
+        nucs = {nb.byName[nn] for nn in c.getNuclides()}
+        freeNucsHere = set()
+        freeNucsHere.update(nucs)
+        for tsl in c.material.thermalScatteringLaws:
+            for subjectNb in tsl.getSubjectNuclideBases():
+                if subjectNb in nucs:
+                    if (
+                        subjectNb in tslByNuclideBase
+                        and tslByNuclideBase[subjectNb] is not tsl
+                    ):
+                        raise RuntimeError(
+                            f"{subjectNb} in {armiObj} is subject to more than 1 different TSL: "
+                            f"{tsl} and {tslByNuclideBase[subjectNb]}"
+                        )
+                    tslByNuclideBase[subjectNb] = tsl
+                    freeNucsHere.remove(subjectNb)
+        freeNuclideBases.update(freeNucsHere)
+
+    freeAndBound = freeNuclideBases.intersection(set(tslByNuclideBase.keys()))
+    if freeAndBound:
+        raise RuntimeError(
+            f"{freeAndBound} is/are present in both bound and free forms in {armiObj}"
+        )
+
+    return tslByNuclideBase

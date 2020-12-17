@@ -24,7 +24,47 @@ from armi.physics.neutronics.latticePhysics import latticePhysicsInterface
 from armi.nuclearDataIO import xsLibraries
 from armi import mpiActions
 
-from . import dragonExecutor
+from .settings import CONF_OPT_DRAGON
+
+
+class DragonRunner(mpiActions.MpiAction):
+    """
+    Run a set of DRAGON runs, possibly in parallel.
+
+    MpiActions have access to the operator and the reactor and can therefore
+    reach in as appropriate to select which blocks to execute on in a 
+    analysis-specific way.
+
+    Builds DragonExecuters to run each individual case.
+    """
+
+    def __init__(self, objsToRun):
+        mpiActions.MpiAction.__init__(self)
+        self._objs = objsToRun
+
+    def invokeHook(self):
+        """Perform DRAGON calculation for the blocks assigned to this process."""
+        for b in self.mpiIter(self._objs):
+            executer = self._buildExecuterForBlock(b)
+            executer.run()
+
+        if self.parallel:
+            self.gather()
+            self.r.syncMpiState()
+
+    def _buildExecuterForBlock(self, b):
+        """Build options and executers for a block."""
+        from . import dragonExecutor
+
+        opts = dragonExecutor.DragonOptions(
+            label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}"
+        )
+
+        opts.fromReactor(self.r)
+        opts.fromBlock(b)
+        opts.fromUserSettings(self.cs)
+
+        return dragonFactory.makeExecuter(opts, b)
 
 
 class DragonInterface(interfaces.Interface):
@@ -33,12 +73,25 @@ class DragonInterface(interfaces.Interface):
     name = "dragon"  # name is required for all interfaces
     function = latticePhysicsInterface.LATTICE_PHYSICS
 
+    def __init__(self, r, cs):
+        interfaces.Interface.__init__(self, r, cs)
+        # pylint: disable=wrong-import-position; avoid circular imports
+        from .dragonExecutor import DragonExecuter
+        from .dragonWriter import DragonWriterHomogenized
+
+        # register built-in objects. You can add your own in your app/plugins.
+        dragonFactory.registerExecuter(CONF_OPT_DRAGON, DragonExecuter)
+        dragonFactory.registerWriter(CONF_OPT_DRAGON, DragonWriterHomogenized)
+        dragonFactory.registerRunner(CONF_OPT_DRAGON, DragonRunner)
+        dragonFactory.setKey(CONF_OPT_DRAGON)
+
     def interactBOC(self, cycle=None):
         """Run DRAGON on various representative blocks, producing microscopic cross sections."""
-        runLog.info("Running DRAGON to update cross sections.")
+        runLog.info(f"Running DRAGON to update cross sections with {self.name}.")
         mpiActions.DistributeStateAction.invokeAsMaster(self.o, self.r, self.cs)
 
-        dragonRunner = DragonRunner()
+        objsToRun = self.selectObjsToRun()
+        dragonRunner = dragonFactory.makeRunner(objsToRun)
         # Run on any potential worker mpi nodes
         dragonRunner.broadcast()
         # Run on this process as well
@@ -57,45 +110,13 @@ class DragonInterface(interfaces.Interface):
 
         isotxs.writeBinary(lib, neutronics.ISOTXS)
 
-
-class DragonRunner(mpiActions.MpiAction):
-    """
-    Run a set of DRAGON runs, possibly in parallel.
-
-    MpiActions have access to the operator and the reactor and can therefore
-    reach in as appropriate to select which blocks to execute on in a 
-    analysis-specific way.
-
-    Builds DragonExecuters to run each individual case.
-    """
-
-    def invokeHook(self):
-        """Perform DRAGON calculation for the blocks assigned to this process."""
-        for b in self.mpiIter(selectBlocksToRun(self.o)):
-            executer = self._buildExecuterForBlock(b)
-            executer.run()
-
-        if self.parallel:
-            self.gather()
-            self.r.syncMpiState()
-
-    def _buildExecuterForBlock(self, b):
-        """Build options and executers for a block."""
-        opts = dragonExecutor.DragonOptions(
-            label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}"
-        )
-
-        opts.fromReactor(self.r)
-        opts.fromBlock(b)
-        opts.fromUserSettings(self.cs)
-
-        return dragonExecutor.DragonExecuter(opts, b)
+    def selectObjsToRun(self):
+        """Choose blocks that will be passed for DRAGON analysis."""
+        dragonBlocks = []
+        xsGroupManager = self.o.getInterface("xsGroups")
+        for block in xsGroupManager.representativeBlocks.values():
+            dragonBlocks.append(block)
+        return dragonBlocks
 
 
-def selectBlocksToRun(o):
-    """Choose blocks that will be passed for DRAGON analysis."""
-    dragonBlocks = []
-    xsGroupManager = o.getInterface("xsGroups")
-    for block in xsGroupManager.representativeBlocks.values():
-        dragonBlocks.append(block)
-    return dragonBlocks
+from .dragonFactory import dragonFactory

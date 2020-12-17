@@ -1,2 +1,6 @@
-"""This is a namespace package for the Dragon plugin"""
+"""
+The DRAGON plugin.
+
+This is a namespace package for running DRAGON.
+"""
 from .plugin import DragonPlugin

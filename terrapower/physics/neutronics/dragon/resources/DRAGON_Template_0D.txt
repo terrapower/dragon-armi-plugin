@@ -49,14 +49,16 @@ MODULE
 *----
 LIBRARY := LIB: ::
   ANIS 2
-  NMIX 1 CTRA WIMS
+  NMIX {{mixtures|length}} CTRA WIMS
   ! Only 8 chars allowed. Actual data used: {{ nucDataComment }}
   MIXS LIB: DRAGON FIL: {{ nucData }} 
-  MIX 1 {{"{:5f}".format(tempFuelInKelvin)}}
-{%- for nuclideID, dragonLibNuclide, nDens, selfShieldingFilterData in blockNDensCard -%}
-{{"\n   {:>7} = {:>7}   {:.6E} {:>3}".format(
-nuclideID, dragonLibNuclide, nDens,  1 if selfShieldingFilterData.mixtureMassDensity > 0.01 else "")}}       
-{%- endfor %}
+{% for mixture in mixtures %}
+  MIX {{loop.index}} {{"{:5f}".format(mixture.getTempInK())}}
+{%- for mixNuc in mixture.getMixVector() -%}
+{{"\n   {:>5}{:2} = {:>7}   {:.6E} {:>3}".format(
+mixNuc.armiName, mixNuc.xsid, mixNuc.dragName, mixNuc.ndens, mixNuc.selfShield)}}
+{%- endfor -%}
+{% endfor %}
   ;
 *----
 *  Geometry HOM : Homogeneous geometry
