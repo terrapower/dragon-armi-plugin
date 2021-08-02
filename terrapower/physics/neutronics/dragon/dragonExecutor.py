@@ -31,7 +31,6 @@ import subprocess
 from armi import runLog
 from armi.utils import directoryChangers
 from armi.utils import outputCache
-from armi.localization import exceptions
 from armi.reactor import blocks
 from armi.settings import caseSettings
 from armi.physics import executers
@@ -125,7 +124,9 @@ class DragonExecuter:
         inputs, outputs = self._collectIONames()
 
         with directoryChangers.ForcedCreationDirectoryChanger(
-            self.options.runDir, filesToMove=inputs, filesToRetrieve=outputs,
+            self.options.runDir,
+            filesToMove=inputs,
+            filesToRetrieve=outputs,
         ):
             self._execute()
 
@@ -182,7 +183,7 @@ class DragonExecuter:
                         stderr=subprocess.STDOUT,
                     )
                 except Exception as err:
-                    raise exceptions.XSGenerationError() from err
+                    raise err
 
         outputCache.cacheCall(
             self.options.cacheDir,
