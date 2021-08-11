@@ -17,7 +17,7 @@ class TestWriter(unittest.TestCase):
     def setUp(self):
         block = loadTestBlock()
         self.cs = caseSettings.Settings()
-        self.cs[CONF_CROSS_SECTION].setDefaults(self.cs)
+        self.cs[CONF_CROSS_SECTION].setDefaults(self.cs, validBlockTypes=False)
         self.cs["dragonDataPath"] = os.path.join("path", "to", "draglibendfb7r1SHEM361")
         options = dragonExecutor.DragonOptions("test")
         options.fromBlock(block)
