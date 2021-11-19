@@ -32,7 +32,7 @@ class DragonRunner(mpiActions.MpiAction):
     Run a set of DRAGON runs, possibly in parallel.
 
     MpiActions have access to the operator and the reactor and can therefore
-    reach in as appropriate to select which blocks to execute on in a 
+    reach in as appropriate to select which blocks to execute on in a
     analysis-specific way.
 
     Builds DragonExecuters to run each individual case.
@@ -68,7 +68,7 @@ class DragonRunner(mpiActions.MpiAction):
 
 
 class DragonInterface(interfaces.Interface):
-    """"Schedules activities related to DRAGON during ARMI run."""
+    """ "Schedules activities related to DRAGON during ARMI run."""
 
     name = "dragon"  # name is required for all interfaces
     function = latticePhysicsInterface.LATTICE_PHYSICS

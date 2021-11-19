@@ -151,7 +151,7 @@ class DragonExecuter:
     def _execute(self):
         """
         Execute the DRAGON input.
-        
+
         The nuclear data and input are now in current working directory.
 
         Notes
