@@ -39,8 +39,11 @@ tags
 .cache/
 .pytest_cache/
 .vim-bookmarks
-.venv*/
+venv*/
 .mypy_cache/
+.tox/
+.coverage
+coverage.xml
 
 # Misc. exclusions
 *.html
