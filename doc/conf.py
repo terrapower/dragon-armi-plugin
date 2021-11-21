@@ -26,6 +26,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import logging
 import os
 import sys
 
@@ -42,11 +43,23 @@ project = "ARMI Dragon Plugin"
 copyright = "2019, TerraPower, LLC"
 author = "TerraPower, LLC"
 
-# The short X.Y version
+# In this case, let's use the full major.minor.bump version everywhere
 version = ""
-# The full version, including alpha/beta/rc tags
-release = "0.1"
+try:
+    version = (
+        open("../setup.py", "r")
+        .read()
+        .split("version=")[1]
+        .split("\n")[0]
+        .split('"')[1]
+    )
+except:
+    # This is a "nice to have", so let's not dwell no it.
+    pass
+release = version
 
+# from here on out, we use the std library default logging
+logging.setLoggerClass(logging.Logger)
 
 # -- General configuration ---------------------------------------------------
 
