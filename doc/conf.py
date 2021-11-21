@@ -88,7 +88,8 @@ extensions = [
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
-}  # , 'private-members']
+    "private-members": False,
+}
 autodoc_member_order = "bysource"
 autoclass_content = "both"
 

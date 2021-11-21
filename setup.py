@@ -25,7 +25,7 @@ setup(
     description=("ARMI plugin for lattice physics analysis with DRAGON."),
     author="TerraPower LLC",
     author_email="armi-devs@terrapower.com",
-    url="https://github.com/terrapower/dragon-armi-plugin",
+    url="https://github.com/terrapower/dragon-plugin",
     packages=[
         "terrapower.physics.neutronics.dragon",
         "terrapower.physics.neutronics.dragon.tests",
