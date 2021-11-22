@@ -21,7 +21,7 @@ with open("README.rst") as f:
 
 setup(
     name="terrapower-dragon",
-    version="0.1",
+    version="0.1.1",
     description=("ARMI plugin for lattice physics analysis with DRAGON."),
     author="TerraPower LLC",
     author_email="armi-devs@terrapower.com",
