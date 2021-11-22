@@ -13,7 +13,7 @@ help:
 
 clean:
 
-	rm -rf .apidocs _build/* logs/*
+	rm -rf .apidocs _build logs
 
 .PHONY: help Makefile
 
