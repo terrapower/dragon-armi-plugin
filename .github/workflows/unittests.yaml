@@ -1,6 +1,12 @@
 name: Dragon unit tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "0 2 1 * *"
 
 jobs:
   build:
