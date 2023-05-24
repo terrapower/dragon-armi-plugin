@@ -13,13 +13,15 @@
 # limitations under the License.
 
 """
-DRAGON Plugin
+DRAGON Plugin.
 """
-from armi import plugins
 from armi import interfaces
+from armi import plugins
 from armi.physics.neutronics import settings as nSettings
+from armi.settings.fwSettings.globalSettings import CONF_VERSIONS
 
 from . import settings
+from . import meta
 
 
 ORDER = interfaces.STACK_ORDER.CROSS_SECTIONS
@@ -31,8 +33,10 @@ class DragonPlugin(plugins.ArmiPlugin):
     @staticmethod
     @plugins.HOOKIMPL
     def exposeInterfaces(cs):
-        """Function for exposing interface(s) to other code"""
+        """Function for exposing interface(s) to other code."""
         from . import dragonInterface
+
+        DragonPlugin.setVersionInSettings(case.cs)
 
         if (
             cs[nSettings.CONF_XS_KERNEL] == "DRAGON"
@@ -53,3 +57,13 @@ class DragonPlugin(plugins.ArmiPlugin):
     def defineSettingsValidators(inspector):
         """Define settings inspections for DRAGON."""
         return settings.defineValidators(inspector)
+
+    @staticmethod
+    @plugins.HOOKIMPL
+    def defineCaseDependencies(case, suite):
+        DragonPlugin.setVersionInSettings(case.cs)
+
+    @staticmethod
+    def setVersionInSettings(cs):
+        """Helper method to set the version correctly in the Settings file."""
+        cs[CONF_VERSIONS]["armi-example-app"] = meta.__version__

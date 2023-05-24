@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Setup.py script for TerraPower DRAGON ARMI plugin"""
+"""Setup.py script for TerraPower DRAGON ARMI plugin."""
 
 from setuptools import setup
+
+from terrapower.physics.neutronics.dragon.meta import __version__
 
 with open("README.rst") as f:
     README = f.read()
 
 setup(
     name="terrapower-dragon",
-    version="0.1.1",
+    version=__version__,
     description=("ARMI plugin for lattice physics analysis with DRAGON."),
     author="TerraPower LLC",
     author_email="armi-devs@terrapower.com",
