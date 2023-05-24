@@ -69,7 +69,6 @@ class TestDragonMixture(unittest.TestCase):
         self.mix = dragonWriter.DragonMixture(block, options, 0)
 
     def test_mixture(self):
-
         block = self.mix.armiObj
         # remove graphite so we don't mix TSL and non-TSL carbon
         graphite = list(block.getChildrenWithFlags(Flags.INNER | Flags.LINER))[0]

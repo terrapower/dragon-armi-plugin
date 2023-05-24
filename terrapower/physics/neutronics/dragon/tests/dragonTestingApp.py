@@ -20,7 +20,6 @@ class DragonTestingApp(armi.apps.App):
     """App that adds only the DRAGON plugin for testing purposes."""
 
     def __init__(self):
-
         armi.apps.App.__init__(self)
 
         # Only registering DRAGON, main purpose is for testing.
