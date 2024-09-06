@@ -27,7 +27,9 @@ Prerequisites
 Registering the plugin
 ----------------------
 To activate the DRAGON plugin in your ARMI app, ensure it is in your ``PYTHONPATH`` and
-register it in your app with code like::
+register it in your app with code like:
+
+.. code-block:: python
 
     from armi.apps import App
     from terrapower.physics.neutronics.dragon import DragonPlugin
