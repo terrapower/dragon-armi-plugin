@@ -73,5 +73,5 @@ find = {}
 [tool.setuptools.package-data]
 terrapower-dragon = [
     "resources/*",
-    "resources/**/*"
+    "resources/**/*",
 ]
