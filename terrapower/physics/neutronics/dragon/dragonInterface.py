@@ -56,9 +56,7 @@ class DragonRunner(mpiActions.MpiAction):
         """Build options and executers for a block."""
         from . import dragonExecutor
 
-        opts = dragonExecutor.DragonOptions(
-            label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}"
-        )
+        opts = dragonExecutor.DragonOptions(label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}")
 
         opts.fromReactor(self.r)
         opts.fromBlock(b)

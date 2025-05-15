@@ -14,6 +14,7 @@
 
 # pylint: disable=protected-access
 """Test the DRAGON lattice physics writer."""
+
 import os
 import unittest
 

@@ -2,10 +2,6 @@
     :target: https://github.com/terrapower/dragon-armi-plugin/actions?query=workflow%3A%22Dragon%20unit%sotests
     :alt: Unit Tests
 
-.. image:: https://github.com/terrapower/dragon-armi-plugin/workflows/black/badge.svg?branch=master
-    :target: https://github.com/terrapower/dragon-armi-plugin/actions?query=workflow%3A%22black
-    :alt: Black
-
 .. image:: https://github.com/terrapower/dragon-armi-plugin/workflows/Check%20License%20Lines/badge.svg?branch=master
     :target: https://github.com/terrapower/dragon-armi-plugin/actions?query=workflow%3A%22Check%20License%20Lines
     :alt: Copyright TerraPower

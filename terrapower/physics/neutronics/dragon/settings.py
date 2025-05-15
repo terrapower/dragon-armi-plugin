@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Define settings for the DRAGON plugin."""
+
 import os
 import shutil
 
@@ -64,8 +65,7 @@ def defineValidators(inspector):
     queries = [
         settingsValidation.Query(
             lambda: shutil.which(inspector.cs[CONF_DRAGON_PATH]) is None,
-            f"The path specified in the `{CONF_DRAGON_PATH}` setting does not exist: "
-            f"{inspector.cs[CONF_DRAGON_PATH]}",
+            f"The path specified in the `{CONF_DRAGON_PATH}` setting does not exist: {inspector.cs[CONF_DRAGON_PATH]}",
             "Please update executable location to the correct location.",
             inspector.NO_ACTION,
         ),
@@ -78,8 +78,7 @@ def defineValidators(inspector):
             inspector.NO_ACTION,
         ),
         settingsValidation.Query(
-            lambda: len(energyGroups.getGroupStructure(inspector.cs["groupStructure"]))
-            > 33,
+            lambda: len(energyGroups.getGroupStructure(inspector.cs["groupStructure"])) > 33,
             "DRAGON does not run well with more than 33 groups due to calculating "
             "<400 fine groups. This few number of fine groups may not map well onto "
             "more than 33 groups.",

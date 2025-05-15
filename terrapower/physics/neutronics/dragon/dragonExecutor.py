@@ -24,6 +24,7 @@ Scheduling and choosing happens in
 :py:mod:`terrapower.physics.neutronics/dragon.dragonInterface` in default runs, or
 in other apps.
 """
+
 import os
 import shutil
 import subprocess
@@ -172,9 +173,7 @@ class DragonExecuter:
 
         def executeDragon():
             """Helper function to work with output caching"""
-            with open(self.options.outputFile, "w") as outputF, open(
-                self.options.inputFile
-            ) as inputF:
+            with open(self.options.outputFile, "w") as outputF, open(self.options.inputFile) as inputF:
                 try:
                     subprocess.call(
                         self.options.executablePath,

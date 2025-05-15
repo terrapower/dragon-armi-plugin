@@ -105,7 +105,7 @@ required-version = "0.11.10"
 # Assume Python 3.13
 target-version = "py313"
 
-# Setting line-length to 120 (though blacks default is 88)
+# Setting line-length to 120
 line-length = 120
 
 # Exclude a variety of commonly ignored directories.
