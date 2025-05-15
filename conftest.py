@@ -25,7 +25,6 @@ Tests must be invoked via pytest for this to have any affect, for example::
 
 """
 
-from armi import settings
 from terrapower.physics.neutronics.dragon.tests import dragonTestingApp
 
 

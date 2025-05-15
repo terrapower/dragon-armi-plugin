@@ -47,7 +47,7 @@ author = "TerraPower, LLC"
 version = ""
 try:
     version = open("../setup.py", "r").read().split("version=")[1].split("\n")[0].split('"')[1]
-except:
+except Exception:
     # This is a "nice to have", so let's not dwell no it.
     pass
 release = version

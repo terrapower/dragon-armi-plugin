@@ -17,10 +17,10 @@
 import os
 import shutil
 
-from armi.settings import setting
 from armi.operators import settingsValidation
-from armi.physics.neutronics import settings as neutronicsSettings
 from armi.physics.neutronics import energyGroups
+from armi.physics.neutronics import settings as neutronicsSettings
+from armi.settings import setting
 
 CONF_DRAGON_PATH = "dragonExePath"
 CONF_DRAGON_DATA_PATH = "dragonDataPath"

@@ -16,13 +16,10 @@
 Triggers DRAGON input writing, execution, and output reading during an ARMI run.
 """
 
-from armi import runLog
-from armi import interfaces
-from armi.nuclearDataIO import isotxs
+from armi import interfaces, mpiActions, runLog
+from armi.nuclearDataIO import isotxs, xsLibraries
 from armi.physics import neutronics
 from armi.physics.neutronics.latticePhysics import latticePhysicsInterface
-from armi.nuclearDataIO import xsLibraries
-from armi import mpiActions
 
 from .settings import CONF_OPT_DRAGON
 
@@ -99,7 +96,6 @@ class DragonInterface(interfaces.Interface):
 
     def _mergeISOTXS(self):
         """Merge all the ISOTXS files together so that can be run for global flux."""
-
         # Create an empty ISOTXS library to be filled in with XS data
         lib = xsLibraries.IsotxsLibrary()
 

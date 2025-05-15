@@ -30,15 +30,12 @@ import shutil
 import subprocess
 
 from armi import runLog
-from armi.utils import directoryChangers
-from armi.utils import outputCache
+from armi.physics import executers, neutronics
 from armi.reactor import blocks
 from armi.settings import caseSettings
-from armi.physics import executers
-from armi.physics import neutronics
+from armi.utils import directoryChangers, outputCache
 
-from . import dragonWriter
-from . import settings
+from . import dragonWriter, settings
 
 # DRAGON natively names the ISOTXS file "ISOTXS000001".
 ISOTXS_NAME = "ISOTXS{:06d}"

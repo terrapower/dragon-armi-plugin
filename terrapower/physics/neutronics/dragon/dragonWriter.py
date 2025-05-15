@@ -26,15 +26,13 @@ subclasess in design-specific ARMI apps (or other clients).
 
 from typing import NamedTuple
 
-from jinja2 import Template
-
-from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
-from armi.utils import units
+from armi import runLog
 from armi.nucDirectory import nuclideBases as nb
 from armi.nucDirectory import thermalScattering as tsl
-from armi import runLog
+from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
 from armi.reactor.flags import Flags
-from armi.physics.neutronics import energyGroups
+from armi.utils import units
+from jinja2 import Template
 
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
 
@@ -70,9 +68,7 @@ class DragonWriter:
         return f"<DragonWriter for {str(self.armiObjs)[:15]}...>"
 
     def write(self):
-        """
-        Write a DRAGON input file.
-        """
+        """Write a DRAGON input file."""
         runLog.info(f"Writing input with {self}")
 
         templateData = self._buildTemplateData()
@@ -86,9 +82,7 @@ class DragonWriter:
             return Template(templateFormat.read())
 
     def _buildTemplateData(self):
-        """
-        Return data to be sent to the template to produce the DRAGON input.
-        """
+        """Return data to be sent to the template to produce the DRAGON input."""
         templateData = {
             "xsId": self.options.xsID,
             "nucData": self.options.libDataFileShort,
@@ -228,7 +222,6 @@ class DragonMixture:
             )
         return nucData
 
-    # pylint: disable=unused-argument
     def getSelfShieldingFlag(self, nucBase, nDens) -> str:
         """
         Get self shielding flag for a given nuclide.

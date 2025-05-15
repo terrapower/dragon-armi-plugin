@@ -16,14 +16,11 @@
 DRAGON Plugin.
 """
 
-from armi import interfaces
-from armi import plugins
+from armi import interfaces, plugins
 from armi.physics.neutronics import settings as nSettings
 from armi.settings.fwSettings.globalSettings import CONF_VERSIONS
 
-from . import settings
-from . import meta
-
+from . import meta, settings
 
 ORDER = interfaces.STACK_ORDER.CROSS_SECTIONS
 
