@@ -1,0 +1,108 @@
+# Copyright 2025 TerraPower, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#######################################################################
+#                        GENERAL PYTHON CONFIG                        #
+#######################################################################
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terrapower-dragon"
+version = "0.1.3"
+description = "ARMI plugin for lattice physics analysis with DRAGON."
+license = {file = "LICENSE.md"}
+requires-python = ">3.8"
+readme = "README.rst"
+authors = [
+    { name="TerraPower, LLC", email="armi-devs@terrapower.com" },
+]
+dependencies = [
+    "armi>=0.3.0",
+    "jinja2",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.urls]
+Repository = "https://github.com/terrapower/dragon-armi-plugin"
+"Bug Tracker" = "https://github.com/terrapower/dragon-armi-plugin/issues"
+
+[project.optional-dependencies]
+test = [
+    "black==22.6.0", # Code formatter (version-pinned)
+    "pytest>=7.0.0", # Our primary test tooling
+    "ruff==0.5.1", # Linting and code formatting (version-pinned)
+]
+docs = [
+######################################################################################
+# These are most specified that usual, because Sphinx docs seem to be quite fragile. #
+#                                                                                    #
+# Officially, we build our docs with Python 3.13.                                    #
+######################################################################################
+    "docutils==0.21.2", # Needed by sphinx-rtd-them
+    "ipykernel>=6.0.0", # iPython kernel to run Jupyter notebooks
+    "nbsphinx-link==1.3.1", # Adds Jupyter NBs to Sphinx source root
+    "nbsphinx==0.9.6", # Parses Jupyter notebooks
+    "pandoc", # Must be in the path (to convert file formats)
+    "pylint", # Generates UML diagrams
+    "pypdf==5.3.1", # Generating a single PDF file for the Sphinx documentation
+    "setuptools",  # needed for conf.py tooling
+    "sphinx-data-viewer==0.1.5",
+    "sphinx-gallery==0.13.0", # Builds an HTML version of a Python script and puts it into a gallery
+    "sphinx-needs==4.2.0", # Requirements traceability matrices for QA
+    "sphinx-rtd-theme==3.0.2", # Read-The-Docs theme for Sphinx
+    "sphinx-test-reports==1.1.0", # sphinx-needs test reports in the STR
+    "Sphinx==7.4.7", # central library used to build our docs
+    "sphinxcontrib-apidoc==0.5.0", # More easily document our API
+    "sphinxcontrib-applehelp==2.0.0",
+    "sphinxcontrib-devhelp==2.0.0",
+    "sphinxcontrib-htmlhelp==2.1.0",
+    "sphinxcontrib-jquery==4.1", # Handle missing jquery errors
+    "sphinxcontrib-jsmath==1.0.1",
+    "sphinxcontrib-plantuml==0.30", # UML support in sphinx-needs
+    "sphinxcontrib-qthelp==2.0.0",
+    "sphinxcontrib-serializinghtml==2.0.0",
+    "sphinxext-opengraph==0.9.1", # Generates OpenGraph metadata to make cards for social media
+    "unittest-xml-reporting==3.2.0", # Allows us to generate junit XML test reports
+]
+
+[tool.black]
+line-length = 88
+
+[tool.setuptools.packages]
+find = {}
+
+#######################################################################
+#              DATA FILES TO BE INCLUDED WITH THE PROJECT             #
+#######################################################################
+[tool.setuptools.package-data]
+terrapower = [
+    "physics/neutronics/dragon/resources/DRAGON_Template_0D.txt",
+]
