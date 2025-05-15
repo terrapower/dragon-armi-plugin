@@ -78,7 +78,8 @@ def defineValidators(inspector):
             inspector.NO_ACTION,
         ),
         settingsValidation.Query(
-            lambda: len(energyGroups.getGroupStructure(inspector.cs["groupStructure"])) > 33,
+            lambda: len(energyGroups.getGroupStructure(inspector.cs["groupStructure"]))
+            > 33,
             "DRAGON does not run well with more than 33 groups due to calculating "
             "<400 fine groups. This few number of fine groups may not map well onto "
             "more than 33 groups.",

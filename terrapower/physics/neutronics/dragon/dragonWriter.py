@@ -133,7 +133,9 @@ class DragonWriterHomogenized(DragonWriter):
 
     def _makeMixtures(self):
         """Make a DragonMixture from each object slated for inclusion in the input."""
-        return [DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)]
+        return [
+            DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)
+        ]
 
 
 class MixtureNuclide(NamedTuple):
@@ -312,7 +314,10 @@ def getNuclideThermalScatteringData(armiObj):
         for tsl in c.material.thermalScatteringLaws:
             for subjectNb in tsl.getSubjectNuclideBases():
                 if subjectNb in nucs:
-                    if subjectNb in tslByNuclideBase and tslByNuclideBase[subjectNb] is not tsl:
+                    if (
+                        subjectNb in tslByNuclideBase
+                        and tslByNuclideBase[subjectNb] is not tsl
+                    ):
                         raise RuntimeError(
                             f"{subjectNb} in {armiObj} is subject to more than 1 different TSL: "
                             f"{tsl} and {tslByNuclideBase[subjectNb]}"

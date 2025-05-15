@@ -44,9 +44,13 @@ class TestWriter(unittest.TestCase):
         """
         data = self.writer._buildTemplateData()  # pylint: disable=protected-access
         self.assertEqual(data["xsId"], "AA")
-        self.assertLess(len(data["nucData"]), dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME + 1)
+        self.assertLess(
+            len(data["nucData"]), dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME + 1
+        )
         self.assertEqual(data["nucDataComment"], self.cs["dragonDataPath"])
-        self.assertEqual(data["buckling"], bool(self.writer.options.xsSettings.criticalBuckling))
+        self.assertEqual(
+            data["buckling"], bool(self.writer.options.xsSettings.criticalBuckling)
+        )
         self.assertEqual(
             len(data["groupStructure"]),
             len(energyGroups.GROUP_STRUCTURE[self.cs["groupStructure"]]) - 1,
@@ -72,7 +76,9 @@ class TestDragonMixture(unittest.TestCase):
         self.assertAlmostEqual(self.mix.getTempInK(), 873.15)
         mixItem = self.mix.getMixVector()[0]
         self.assertEqual(mixItem.xsid, "AA")
-        self.assertEqual(self.mix.getSelfShieldingFlag(nuclideBases.byName["AM242M"], 0.01), "1")
+        self.assertEqual(
+            self.mix.getSelfShieldingFlag(nuclideBases.byName["AM242M"], 0.01), "1"
+        )
 
     def test_getDragLibNucID(self):
         """Test conversion of nuclides to DRAGLIB strings."""

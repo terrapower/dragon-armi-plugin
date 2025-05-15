@@ -38,7 +38,10 @@ class DragonPlugin(plugins.ArmiPlugin):
 
         DragonPlugin.setVersionInSettings(cs)
 
-        if cs[nSettings.CONF_XS_KERNEL] == "DRAGON" and "Neutron" in cs[nSettings.CONF_GEN_XS]:
+        if (
+            cs[nSettings.CONF_XS_KERNEL] == "DRAGON"
+            and "Neutron" in cs[nSettings.CONF_GEN_XS]
+        ):
             klass = dragonInterface.DragonInterface
             return [interfaces.InterfaceInfo(ORDER, klass, {})]
         return []

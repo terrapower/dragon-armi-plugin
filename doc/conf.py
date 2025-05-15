@@ -46,7 +46,13 @@ author = "TerraPower, LLC"
 # In this case, let's use the full major.minor.bump version everywhere
 version = ""
 try:
-    version = open("../setup.py", "r").read().split("version=")[1].split("\n")[0].split('"')[1]
+    version = (
+        open("../setup.py", "r")
+        .read()
+        .split("version=")[1]
+        .split("\n")[0]
+        .split('"')[1]
+    )
 except:
     # This is a "nice to have", so let's not dwell no it.
     pass
