@@ -18,7 +18,7 @@ Write input and execute DRAGON given an ARMI object.
 Currently limited to handling Blocks only.
 
 This module makes no assumptions about where the block comes from or when the
-execution is to be performed. 
+execution is to be performed.
 
 Scheduling and choosing happens in
 :py:mod:`terrapower.physics.neutronics/dragon.dragonInterface` in default runs, or
