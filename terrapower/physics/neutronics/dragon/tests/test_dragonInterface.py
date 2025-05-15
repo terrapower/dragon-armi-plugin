@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Test the DRAGON lattice physics writer."""
+
 import os
 import unittest
 

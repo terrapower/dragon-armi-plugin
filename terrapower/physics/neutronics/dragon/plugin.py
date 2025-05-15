@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """DRAGON Plugin."""
+
 from armi import interfaces, plugins
 from armi.physics.neutronics import settings as nSettings
 from armi.settings.fwSettings.globalSettings import CONF_VERSIONS

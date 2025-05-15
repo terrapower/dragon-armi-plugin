@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Unit tests for writers."""
+
 import os
 import unittest
 
