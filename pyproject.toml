@@ -71,7 +71,6 @@ find = {}
 #              DATA FILES TO BE INCLUDED WITH THE PROJECT             #
 #######################################################################
 [tool.setuptools.package-data]
-terrapower-dragon = [
-    "resources/*",
-    "resources/**/*",
+terrapower = [
+    "physics/neutronics/dragon/resources/DRAGON_Template_0D.txt",
 ]
