@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Triggers DRAGON input writing, execution, and output reading during an ARMI run.
-"""
+"""Triggers DRAGON input writing, execution, and output reading during an ARMI run."""
 
 from armi import interfaces, mpiActions, runLog
 from armi.nuclearDataIO import isotxs, xsLibraries
@@ -70,9 +68,8 @@ class DragonInterface(interfaces.Interface):
 
     def __init__(self, r, cs):
         interfaces.Interface.__init__(self, r, cs)
-        # pylint: disable=wrong-import-position; avoid circular imports
-        from .dragonExecutor import DragonExecuter
-        from .dragonWriter import DragonWriterHomogenized
+        from terrapower.physics.neutronics.dragon.dragonExecutor import DragonExecuter
+        from terrapower.physics.neutronics.dragon.dragonWriter import DragonWriterHomogenized
 
         # register built-in objects. You can add your own in your app/plugins.
         dragonFactory.registerExecuter(CONF_OPT_DRAGON, DragonExecuter)
@@ -113,4 +110,4 @@ class DragonInterface(interfaces.Interface):
         return dragonBlocks
 
 
-from .dragonFactory import dragonFactory
+from terrapower.physics.neutronics.dragon.dragonFactory import dragonFactory
