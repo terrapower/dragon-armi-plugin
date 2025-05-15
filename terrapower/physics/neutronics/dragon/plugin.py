@@ -36,7 +36,7 @@ class DragonPlugin(plugins.ArmiPlugin):
         """Function for exposing interface(s) to other code."""
         from . import dragonInterface
 
-        DragonPlugin.setVersionInSettings(case.cs)
+        DragonPlugin.setVersionInSettings(cs)
 
         if (
             cs[nSettings.CONF_XS_KERNEL] == "DRAGON"
