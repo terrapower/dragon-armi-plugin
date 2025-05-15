@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit tests for writers"""
-import unittest
-import os
+"""Unit tests for writers."""
 
-from armi.reactor.tests.test_blocks import loadTestBlock
+import os
+import unittest
+
 from armi.nucDirectory import nuclideBases
-from armi.settings import caseSettings
+from armi.physics.neutronics import energyGroups
 from armi.physics.neutronics.const import CONF_CROSS_SECTION
 from armi.reactor.flags import Flags
-from armi.physics.neutronics import energyGroups
+from armi.reactor.tests.test_blocks import loadTestBlock
+from armi.settings import caseSettings
 
-from terrapower.physics.neutronics.dragon import dragonWriter
-from terrapower.physics.neutronics.dragon import dragonExecutor
+from terrapower.physics.neutronics.dragon import dragonExecutor, dragonWriter
 
 
 class TestWriter(unittest.TestCase):
@@ -39,18 +39,12 @@ class TestWriter(unittest.TestCase):
         self.writer = dragonWriter.DragonWriterHomogenized([block], options)
 
     def test_templateData(self):
-        """
-        Test that the template data structure is properly defined.
-        """
-        data = self.writer._buildTemplateData()  # pylint: disable=protected-access
+        """Test that the template data structure is properly defined."""
+        data = self.writer._buildTemplateData()
         self.assertEqual(data["xsId"], "AA")
-        self.assertLess(
-            len(data["nucData"]), dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME + 1
-        )
+        self.assertLess(len(data["nucData"]), dragonWriter.N_CHARS_ALLOWED_IN_LIB_NAME + 1)
         self.assertEqual(data["nucDataComment"], self.cs["dragonDataPath"])
-        self.assertEqual(
-            data["buckling"], bool(self.writer.options.xsSettings.criticalBuckling)
-        )
+        self.assertEqual(data["buckling"], bool(self.writer.options.xsSettings.criticalBuckling))
         self.assertEqual(
             len(data["groupStructure"]),
             len(energyGroups.GROUP_STRUCTURE[self.cs["groupStructure"]]) - 1,
@@ -76,9 +70,7 @@ class TestDragonMixture(unittest.TestCase):
         self.assertAlmostEqual(self.mix.getTempInK(), 873.15)
         mixItem = self.mix.getMixVector()[0]
         self.assertEqual(mixItem.xsid, "AA")
-        self.assertEqual(
-            self.mix.getSelfShieldingFlag(nuclideBases.byName["AM242M"], 0.01), "1"
-        )
+        self.assertEqual(self.mix.getSelfShieldingFlag(nuclideBases.byName["AM242M"], 0.01), "1")
 
     def test_getDragLibNucID(self):
         """Test conversion of nuclides to DRAGLIB strings."""

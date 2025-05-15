@@ -15,13 +15,11 @@
 """
 Factory for building DRAGON related objects and their subclasses.
 
-This is an attempt at using an Abstract Factory pattern to allow
-applications to configure the dragon plugin as they see necessary.
-Choosing which writer subclasses to use has to be done at some level.
-This factory allows an app to configure its choices in a global
-instance of this abstract factory. At some later date it may
-make sense for ARMI to provide a common way for plugins
-to self-configure. .
+This is an attempt at using an Abstract Factory pattern to allow applications to configure the
+dragon plugin as they see necessary.  Choosing which writer subclasses to use has to be done at some
+level. This factory allows an app to configure its choices in a global instance of this abstract
+factory. At some later date it may make sense for ARMI to provide a common way for plugins to self-
+configure.
 """
 
 
@@ -65,7 +63,7 @@ class DragonFactory:
         return self._executers[self._key](opts, obj)
 
     def makeWriter(self, objs, options):
-        """Return a new writer instance"""
+        """Return a new writer instance."""
         return self._writers[self._key](objs, options)
 
 

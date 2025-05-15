@@ -12,19 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Triggers DRAGON input writing, execution, and output reading during an ARMI run.
-"""
+"""Triggers DRAGON input writing, execution, and output reading during an ARMI run."""
 
-from armi import runLog
-from armi import interfaces
-from armi.nuclearDataIO import isotxs
+from armi import interfaces, mpiActions, runLog
+from armi.nuclearDataIO import isotxs, xsLibraries
 from armi.physics import neutronics
 from armi.physics.neutronics.latticePhysics import latticePhysicsInterface
-from armi.nuclearDataIO import xsLibraries
-from armi import mpiActions
 
-from .settings import CONF_OPT_DRAGON
+from terrapower.physics.neutronics.dragon.dragonFactory import dragonFactory
+from terrapower.physics.neutronics.dragon.settings import CONF_OPT_DRAGON
 
 
 class DragonRunner(mpiActions.MpiAction):
@@ -54,11 +50,9 @@ class DragonRunner(mpiActions.MpiAction):
 
     def _buildExecuterForBlock(self, b):
         """Build options and executers for a block."""
-        from . import dragonExecutor
+        from terrapower.physics.neutronics.dragon import dragonExecutor
 
-        opts = dragonExecutor.DragonOptions(
-            label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}"
-        )
+        opts = dragonExecutor.DragonOptions(label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}")
 
         opts.fromReactor(self.r)
         opts.fromBlock(b)
@@ -68,16 +62,15 @@ class DragonRunner(mpiActions.MpiAction):
 
 
 class DragonInterface(interfaces.Interface):
-    """ "Schedules activities related to DRAGON during ARMI run."""
+    """Schedules activities related to DRAGON during ARMI run."""
 
     name = "dragon"  # name is required for all interfaces
     function = latticePhysicsInterface.LATTICE_PHYSICS
 
     def __init__(self, r, cs):
         interfaces.Interface.__init__(self, r, cs)
-        # pylint: disable=wrong-import-position; avoid circular imports
-        from .dragonExecutor import DragonExecuter
-        from .dragonWriter import DragonWriterHomogenized
+        from terrapower.physics.neutronics.dragon.dragonExecutor import DragonExecuter
+        from terrapower.physics.neutronics.dragon.dragonWriter import DragonWriterHomogenized
 
         # register built-in objects. You can add your own in your app/plugins.
         dragonFactory.registerExecuter(CONF_OPT_DRAGON, DragonExecuter)
@@ -101,7 +94,6 @@ class DragonInterface(interfaces.Interface):
 
     def _mergeISOTXS(self):
         """Merge all the ISOTXS files together so that can be run for global flux."""
-
         # Create an empty ISOTXS library to be filled in with XS data
         lib = xsLibraries.IsotxsLibrary()
 
@@ -117,6 +109,3 @@ class DragonInterface(interfaces.Interface):
         for block in xsGroupManager.representativeBlocks.values():
             dragonBlocks.append(block)
         return dragonBlocks
-
-
-from .dragonFactory import dragonFactory

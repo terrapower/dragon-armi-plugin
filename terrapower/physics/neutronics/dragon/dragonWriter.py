@@ -26,15 +26,13 @@ subclasess in design-specific ARMI apps (or other clients).
 
 from typing import NamedTuple
 
-from jinja2 import Template
-
-from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
-from armi.utils import units
+from armi import runLog
 from armi.nucDirectory import nuclideBases as nb
 from armi.nucDirectory import thermalScattering as tsl
-from armi import runLog
+from armi.physics.neutronics.energyGroups import GROUP_STRUCTURE
 from armi.reactor.flags import Flags
-from armi.physics.neutronics import energyGroups
+from armi.utils import units
+from jinja2 import Template
 
 N_CHARS_ALLOWED_IN_LIB_NAME = 8
 
@@ -70,9 +68,7 @@ class DragonWriter:
         return f"<DragonWriter for {str(self.armiObjs)[:15]}...>"
 
     def write(self):
-        """
-        Write a DRAGON input file.
-        """
+        """Write a DRAGON input file."""
         runLog.info(f"Writing input with {self}")
 
         templateData = self._buildTemplateData()
@@ -86,9 +82,7 @@ class DragonWriter:
             return Template(templateFormat.read())
 
     def _buildTemplateData(self):
-        """
-        Return data to be sent to the template to produce the DRAGON input.
-        """
+        """Return data to be sent to the template to produce the DRAGON input."""
         templateData = {
             "xsId": self.options.xsID,
             "nucData": self.options.libDataFileShort,
@@ -133,9 +127,7 @@ class DragonWriterHomogenized(DragonWriter):
 
     def _makeMixtures(self):
         """Make a DragonMixture from each object slated for inclusion in the input."""
-        return [
-            DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)
-        ]
+        return [DragonMixture(obj, self.options, i) for i, obj in enumerate(self.armiObjs)]
 
 
 class MixtureNuclide(NamedTuple):
@@ -153,11 +145,11 @@ class DragonMixture:
     Data structure for a single mixture in Dragon.
 
     Each mixture can be associated with:
+
         * A temperature
         * A number density vector
         * A mapping between library names and internal nuclide names
         * A self-shielding vector
-
     """
 
     def __init__(self, armiObj, options, index):
@@ -171,19 +163,18 @@ class DragonMixture:
 
         Notes
         -----
-        Only 1 temperature can be specified per mixture in DRAGON. For 0-D
-        cases, the temperature of the fuel component is used for the entire
-        mixture.
+        Only 1 temperature can be specified per mixture in DRAGON. For 0-D cases, the temperature of
+        the fuel component is used for the entire mixture.
 
-        For heterogeneous models, component temperature should be used.
-        Component temperature may not work well yet for non BOL cases since
+        For heterogeneous models, component temperature should be used. Component temperature may
+        not work well yet for non BOL cases since
 
-        .. warning::
-            The ARMI cross section group manager does not currently set the
-            fuel component temperature to the average component temperatures
-            when making a representative block. Thus, for the time being,
-            fuel temperature of an arbitrary block in each representative
-            block's parents will be obtained.
+        Warning
+        -------
+        The ARMI cross section group manager does not currently set the fuel component temperature
+        to the average component temperatures when making a representative block. Thus, for the time
+        being, fuel temperature of an arbitrary block in each representative block's parents will be
+        obtained.
         """
         avgNum = 0.0
         avgDenom = 0.0
@@ -198,9 +189,7 @@ class DragonMixture:
         return units.getTk(Tc=avgNum / avgDenom)
 
     def getMixVector(self):
-        """
-        Generate mixture composition table.
-        """
+        """Generate mixture composition table."""
         nucs = self.options.nuclides
         nucData = []
         numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
@@ -230,7 +219,6 @@ class DragonMixture:
             )
         return nucData
 
-    # pylint: disable=unused-argument
     def getSelfShieldingFlag(self, nucBase, nDens) -> str:
         """
         Get self shielding flag for a given nuclide.
@@ -311,25 +299,20 @@ def getNuclideThermalScatteringData(armiObj):
         nucs = {nb.byName[nn] for nn in c.getNuclides()}
         freeNucsHere = set()
         freeNucsHere.update(nucs)
-        for tsl in c.material.thermalScatteringLaws:
-            for subjectNb in tsl.getSubjectNuclideBases():
+        for thsl in c.material.thermalScatteringLaws:
+            for subjectNb in thsl.getSubjectNuclideBases():
                 if subjectNb in nucs:
-                    if (
-                        subjectNb in tslByNuclideBase
-                        and tslByNuclideBase[subjectNb] is not tsl
-                    ):
+                    if subjectNb in tslByNuclideBase and tslByNuclideBase[subjectNb] is not thsl:
                         raise RuntimeError(
                             f"{subjectNb} in {armiObj} is subject to more than 1 different TSL: "
-                            f"{tsl} and {tslByNuclideBase[subjectNb]}"
+                            f"{thsl} and {tslByNuclideBase[subjectNb]}"
                         )
-                    tslByNuclideBase[subjectNb] = tsl
+                    tslByNuclideBase[subjectNb] = thsl
                     freeNucsHere.remove(subjectNb)
         freeNuclideBases.update(freeNucsHere)
 
     freeAndBound = freeNuclideBases.intersection(set(tslByNuclideBase.keys()))
     if freeAndBound:
-        raise RuntimeError(
-            f"{freeAndBound} is/are present in both bound and free forms in {armiObj}"
-        )
+        raise RuntimeError(f"{freeAndBound} is/are present in both bound and free forms in {armiObj}")
 
     return tslByNuclideBase

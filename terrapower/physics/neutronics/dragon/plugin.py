@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-DRAGON Plugin.
-"""
-from armi import interfaces
-from armi import plugins
+"""DRAGON Plugin."""
+
+from armi import interfaces, plugins
 from armi.physics.neutronics import settings as nSettings
 from armi.settings.fwSettings.globalSettings import CONF_VERSIONS
 
-from . import settings
-from . import meta
-
+from terrapower.physics.neutronics.dragon import meta, settings
 
 ORDER = interfaces.STACK_ORDER.CROSS_SECTIONS
 
@@ -34,14 +30,11 @@ class DragonPlugin(plugins.ArmiPlugin):
     @plugins.HOOKIMPL
     def exposeInterfaces(cs):
         """Function for exposing interface(s) to other code."""
-        from . import dragonInterface
+        from terrapower.physics.neutronics.dragon import dragonInterface
 
         DragonPlugin.setVersionInSettings(cs)
 
-        if (
-            cs[nSettings.CONF_XS_KERNEL] == "DRAGON"
-            and "Neutron" in cs[nSettings.CONF_GEN_XS]
-        ):
+        if cs[nSettings.CONF_XS_KERNEL] == "DRAGON" and "Neutron" in cs[nSettings.CONF_GEN_XS]:
             klass = dragonInterface.DragonInterface
             return [interfaces.InterfaceInfo(ORDER, klass, {})]
         return []

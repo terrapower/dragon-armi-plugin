@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=protected-access
 """Test the DRAGON lattice physics writer."""
+
 import os
 import unittest
 
-from armi.tests import TEST_ROOT
-from armi.reactor.tests import test_reactors
-from armi.reactor.flags import Flags
 from armi.physics.neutronics.const import CONF_CROSS_SECTION
+from armi.reactor.flags import Flags
+from armi.reactor.tests import test_reactors
+from armi.tests import TEST_ROOT
 
-from terrapower.physics.neutronics.dragon import dragonInterface
-from terrapower.physics.neutronics.dragon import dragonExecutor
-from terrapower.physics.neutronics.dragon import dragonWriter
+from terrapower.physics.neutronics.dragon import dragonExecutor, dragonInterface, dragonWriter
 
 THIS_DIR = os.path.dirname(__file__)
 
@@ -65,9 +63,3 @@ class TestDragonInterface(unittest.TestCase):
         """
         self.writer.write()
         os.remove(self.writer.options.inputFile)
-
-
-if __name__ == "__main__":
-    # import sys
-    # sys.argv = ["", "TestDragonExecutor"]
-    unittest.main()
