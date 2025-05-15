@@ -19,7 +19,8 @@ from armi.nuclearDataIO import isotxs, xsLibraries
 from armi.physics import neutronics
 from armi.physics.neutronics.latticePhysics import latticePhysicsInterface
 
-from .settings import CONF_OPT_DRAGON
+from terrapower.physics.neutronics.dragon.dragonFactory import dragonFactory
+from terrapower.physics.neutronics.dragon.settings import CONF_OPT_DRAGON
 
 
 class DragonRunner(mpiActions.MpiAction):
@@ -49,7 +50,7 @@ class DragonRunner(mpiActions.MpiAction):
 
     def _buildExecuterForBlock(self, b):
         """Build options and executers for a block."""
-        from . import dragonExecutor
+        from terrapower.physics.neutronics.dragon import dragonExecutor
 
         opts = dragonExecutor.DragonOptions(label=f"dragon-{b.getName()}-{self.r.p.cycle}-{self.r.p.timeNode}")
 
@@ -61,7 +62,7 @@ class DragonRunner(mpiActions.MpiAction):
 
 
 class DragonInterface(interfaces.Interface):
-    """ "Schedules activities related to DRAGON during ARMI run."""
+    """Schedules activities related to DRAGON during ARMI run."""
 
     name = "dragon"  # name is required for all interfaces
     function = latticePhysicsInterface.LATTICE_PHYSICS
@@ -108,6 +109,3 @@ class DragonInterface(interfaces.Interface):
         for block in xsGroupManager.representativeBlocks.values():
             dragonBlocks.append(block)
         return dragonBlocks
-
-
-from terrapower.physics.neutronics.dragon.dragonFactory import dragonFactory

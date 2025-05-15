@@ -145,11 +145,11 @@ class DragonMixture:
     Data structure for a single mixture in Dragon.
 
     Each mixture can be associated with:
+
         * A temperature
         * A number density vector
         * A mapping between library names and internal nuclide names
         * A self-shielding vector
-
     """
 
     def __init__(self, armiObj, options, index):
@@ -163,19 +163,18 @@ class DragonMixture:
 
         Notes
         -----
-        Only 1 temperature can be specified per mixture in DRAGON. For 0-D
-        cases, the temperature of the fuel component is used for the entire
-        mixture.
+        Only 1 temperature can be specified per mixture in DRAGON. For 0-D cases, the temperature of
+        the fuel component is used for the entire mixture.
 
-        For heterogeneous models, component temperature should be used.
-        Component temperature may not work well yet for non BOL cases since
+        For heterogeneous models, component temperature should be used. Component temperature may
+        not work well yet for non BOL cases since
 
-        .. warning::
-            The ARMI cross section group manager does not currently set the
-            fuel component temperature to the average component temperatures
-            when making a representative block. Thus, for the time being,
-            fuel temperature of an arbitrary block in each representative
-            block's parents will be obtained.
+        Warning
+        -------
+        The ARMI cross section group manager does not currently set the fuel component temperature
+        to the average component temperatures when making a representative block. Thus, for the time
+        being, fuel temperature of an arbitrary block in each representative block's parents will be
+        obtained.
         """
         avgNum = 0.0
         avgDenom = 0.0
@@ -190,9 +189,7 @@ class DragonMixture:
         return units.getTk(Tc=avgNum / avgDenom)
 
     def getMixVector(self):
-        """
-        Generate mixture composition table.
-        """
+        """Generate mixture composition table."""
         nucs = self.options.nuclides
         nucData = []
         numberDensities = self.armiObj.getNuclideNumberDensities(nucs)
@@ -302,15 +299,15 @@ def getNuclideThermalScatteringData(armiObj):
         nucs = {nb.byName[nn] for nn in c.getNuclides()}
         freeNucsHere = set()
         freeNucsHere.update(nucs)
-        for tsl in c.material.thermalScatteringLaws:
-            for subjectNb in tsl.getSubjectNuclideBases():
+        for thsl in c.material.thermalScatteringLaws:
+            for subjectNb in thsl.getSubjectNuclideBases():
                 if subjectNb in nucs:
-                    if subjectNb in tslByNuclideBase and tslByNuclideBase[subjectNb] is not tsl:
+                    if subjectNb in tslByNuclideBase and tslByNuclideBase[subjectNb] is not thsl:
                         raise RuntimeError(
                             f"{subjectNb} in {armiObj} is subject to more than 1 different TSL: "
-                            f"{tsl} and {tslByNuclideBase[subjectNb]}"
+                            f"{thsl} and {tslByNuclideBase[subjectNb]}"
                         )
-                    tslByNuclideBase[subjectNb] = tsl
+                    tslByNuclideBase[subjectNb] = thsl
                     freeNucsHere.remove(subjectNb)
         freeNuclideBases.update(freeNucsHere)
 
