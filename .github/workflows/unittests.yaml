@@ -2,8 +2,6 @@ name: Dragon unit tests
 
 on:
   push:
-    branches:
-      - main
   pull_request:
   schedule:
     - cron: "0 2 1 * *"
